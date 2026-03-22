@@ -1,8 +1,9 @@
 import type { Command } from "commander";
-import { findPool, getAssets } from "../services/stonfi.js";
+import { buildPriceIndex, cachedGetAssets, cachedGetPools } from "../services/cache.js";
 import type { PoolData } from "../types/cli.js";
 import { formatPool } from "../utils/format.js";
 import { CliCommandError, handleCommand } from "../utils/output.js";
+import { calcUsdValue, fromRawUnits } from "../utils/units.js";
 
 export function registerPoolsCommand(program: Command): void {
   program
@@ -23,7 +24,7 @@ export function registerPoolsCommand(program: Command): void {
           }
 
           const [symbolA, symbolB] = parts;
-          const assets = await getAssets();
+          const assets = await cachedGetAssets();
           const upperA = symbolA.toUpperCase();
           const upperB = symbolB.toUpperCase();
           const assetA = assets.find((a) => a.symbol.toUpperCase() === upperA);
@@ -36,17 +37,33 @@ export function registerPoolsCommand(program: Command): void {
             throw new CliCommandError(`Token "${symbolB}" not found`, "TOKEN_NOT_FOUND");
           }
 
-          const pool = await findPool(assetA.contract_address, assetB.contract_address);
+          const pools = await cachedGetPools();
+          const pool = pools.find(
+            (p) =>
+              (p.token0_address === assetA.contract_address &&
+                p.token1_address === assetB.contract_address) ||
+              (p.token0_address === assetB.contract_address &&
+                p.token1_address === assetA.contract_address),
+          );
           if (!pool) {
             throw new CliCommandError(`No pool found for ${symbolA}/${symbolB}`, "POOL_NOT_FOUND");
           }
 
+          const priceIndex = buildPriceIndex(assets);
+          const priceA = priceIndex.get(assetA.contract_address) ?? "0";
+          const priceB = priceIndex.get(assetB.contract_address) ?? "0";
+          const humanReserve0 = fromRawUnits(pool.reserve0, assetA.decimals);
+          const humanReserve1 = fromRawUnits(pool.reserve1, assetB.decimals);
+          const usdA = Number.parseFloat(calcUsdValue(humanReserve0, priceA));
+          const usdB = Number.parseFloat(calcUsdValue(humanReserve1, priceB));
+          const liquidityUsd = (usdA + usdB).toFixed(2);
+
           return {
             pool_address: pool.address,
-            token0: { symbol: assetA.symbol, reserve: pool.reserve0 },
-            token1: { symbol: assetB.symbol, reserve: pool.reserve1 },
-            liquidity_usd: "0", // TODO: Calculate from reserves + prices
-            volume_24h: "0", // TODO: Get from pool stats
+            token0: { symbol: assetA.symbol, reserve: humanReserve0 },
+            token1: { symbol: assetB.symbol, reserve: humanReserve1 },
+            liquidity_usd: liquidityUsd,
+            volume_24h: "N/A",
             fee_rate: pool.lp_fee ?? "0.3%",
             apy: pool.apy_1d,
           };

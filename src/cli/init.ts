@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import { loadConfig, saveConfig } from "../config/index.js";
 import { createWalletFromMnemonic } from "../services/wallet.js";
 import type { Config } from "../types/config.js";
+import { encrypt, loadOrCreateKey } from "../utils/crypto.js";
 import { CliCommandError, handleCommand } from "../utils/output.js";
 
 export function registerInitCommand(program: Command): void {
@@ -32,12 +33,15 @@ export function registerInitCommand(program: Command): void {
         const walletInfo = await createWalletFromMnemonic(words);
         const network = options.testnet ? "testnet" : "mainnet";
 
+        const key = await loadOrCreateKey();
+        const encryptedMnemonic = encrypt(words.join(" "), key);
+
         const existingConfig = await loadConfig();
         const newConfig: Config = {
           ...existingConfig,
           network,
           wallet: {
-            mnemonic_encrypted: "[encrypted]", // TODO: Implement encryption
+            mnemonic_encrypted: encryptedMnemonic,
             address: walletInfo.address,
             version: "v5r1",
           },
