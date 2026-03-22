@@ -34,8 +34,20 @@ describe("wallet service", () => {
     expect(() => getWalletAddress(config)).toThrow(CliCommandError);
   });
 
-  test("createWalletFromMnemonic derives correct address", async () => {
-    // TODO: Test with known mnemonic → address mapping
-    expect(true).toBe(true); // Placeholder
+  test("getWalletAddress error has correct code", () => {
+    const config: Config = {
+      network: "mainnet",
+      preferences: {
+        default_slippage: 0.01,
+        default_dex: "stonfi",
+        currency: "usd",
+      },
+    };
+    try {
+      getWalletAddress(config);
+    } catch (e) {
+      expect(e).toBeInstanceOf(CliCommandError);
+      expect((e as CliCommandError).code).toBe("WALLET_NOT_CONFIGURED");
+    }
   });
 });

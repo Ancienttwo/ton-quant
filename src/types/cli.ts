@@ -93,3 +93,29 @@ export const SwapExecutionDataSchema = z.object({
   explorer_url: z.string(),
 });
 export type SwapExecutionData = z.infer<typeof SwapExecutionDataSchema>;
+
+export const HistoryTransactionSchema = z.object({
+  event_id: z.string(),
+  timestamp: z.string(),
+  type: z.string(),
+  description: z.string(),
+  status: z.string(),
+});
+
+export const HistoryDataSchema = z.object({
+  address: z.string(),
+  transactions: z.array(HistoryTransactionSchema),
+  total: z.number(),
+});
+export type HistoryData = z.infer<typeof HistoryDataSchema>;
+
+export const ResearchDataSchema = z.object({
+  token: PriceDataSchema,
+  pools: z.array(PoolDataSchema),
+  summary: z.object({
+    total_liquidity_usd: z.string(),
+    pool_count: z.number(),
+    top_pair: z.string(),
+  }),
+});
+export type ResearchData = z.infer<typeof ResearchDataSchema>;

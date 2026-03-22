@@ -1,0 +1,314 @@
+import { loadConfig } from "../config/index.js";
+import type {
+  BalanceData,
+  HistoryData,
+  PoolData,
+  PriceData,
+  ResearchData,
+  SwapSimulationData,
+  TrendingData,
+} from "../types/cli.js";
+import { CliCommandError } from "../utils/output.js";
+import { calcUsdValue, fromRawUnits, toRawUnits } from "../utils/units.js";
+import {
+  buildPriceIndex,
+  cachedFindAssetBySymbol,
+  cachedGetAssets,
+  cachedGetPools,
+} from "./cache.js";
+import { simulateSwap } from "./stonfi.js";
+import { getBalance, getJettonBalances, getTransactions } from "./tonapi.js";
+import { getWalletAddress } from "./wallet.js";
+
+const TON_DECIMALS = 9;
+
+/**
+ * Fetch enriched price data for a token symbol.
+ */
+export async function fetchPriceData(symbol: string): Promise<PriceData> {
+  const asset = await cachedFindAssetBySymbol(symbol);
+  if (!asset) {
+    throw new CliCommandError(`Token "${symbol}" not found`, "TOKEN_NOT_FOUND");
+  }
+
+  return {
+    symbol: asset.symbol,
+    name: asset.display_name ?? asset.symbol,
+    address: asset.contract_address,
+    decimals: asset.decimals,
+    price_usd: asset.dex_usd_price ?? asset.dex_price_usd ?? "0",
+    change_24h: "N/A",
+    volume_24h: "N/A",
+  };
+}
+
+/**
+ * Fetch enriched pool data for a token pair.
+ */
+export async function fetchPoolData(symbolA: string, symbolB: string): Promise<PoolData> {
+  const assets = await cachedGetAssets();
+  const upperA = symbolA.toUpperCase();
+  const upperB = symbolB.toUpperCase();
+  const assetA = assets.find((a) => a.symbol.toUpperCase() === upperA);
+  const assetB = assets.find((a) => a.symbol.toUpperCase() === upperB);
+
+  if (!assetA) {
+    throw new CliCommandError(`Token "${symbolA}" not found`, "TOKEN_NOT_FOUND");
+  }
+  if (!assetB) {
+    throw new CliCommandError(`Token "${symbolB}" not found`, "TOKEN_NOT_FOUND");
+  }
+
+  const pools = await cachedGetPools();
+  const pool = pools.find(
+    (p) =>
+      (p.token0_address === assetA.contract_address &&
+        p.token1_address === assetB.contract_address) ||
+      (p.token0_address === assetB.contract_address &&
+        p.token1_address === assetA.contract_address),
+  );
+  if (!pool) {
+    throw new CliCommandError(`No pool found for ${symbolA}/${symbolB}`, "POOL_NOT_FOUND");
+  }
+
+  const priceIndex = buildPriceIndex(assets);
+  const priceA = priceIndex.get(assetA.contract_address) ?? "0";
+  const priceB = priceIndex.get(assetB.contract_address) ?? "0";
+  const humanReserve0 = fromRawUnits(pool.reserve0, assetA.decimals);
+  const humanReserve1 = fromRawUnits(pool.reserve1, assetB.decimals);
+  const usdA = Number.parseFloat(calcUsdValue(humanReserve0, priceA));
+  const usdB = Number.parseFloat(calcUsdValue(humanReserve1, priceB));
+
+  return {
+    pool_address: pool.address,
+    token0: { symbol: assetA.symbol, reserve: humanReserve0 },
+    token1: { symbol: assetB.symbol, reserve: humanReserve1 },
+    liquidity_usd: (usdA + usdB).toFixed(2),
+    volume_24h: "N/A",
+    fee_rate: pool.lp_fee ?? "0.3%",
+    apy: pool.apy_1d,
+  };
+}
+
+/**
+ * Fetch trending tokens ranked by total liquidity.
+ */
+export async function fetchTrendingData(limit: number): Promise<TrendingData> {
+  const assets = await cachedGetAssets();
+  const pools = await cachedGetPools();
+  const priceIndex = buildPriceIndex(assets);
+  const assetByAddress = new Map(assets.map((a) => [a.contract_address, a]));
+
+  const liquidityByAddress = new Map<string, number>();
+  for (const pool of pools) {
+    if (pool.deprecated) continue;
+    const a0 = assetByAddress.get(pool.token0_address);
+    const a1 = assetByAddress.get(pool.token1_address);
+    if (!a0 || !a1) continue;
+
+    const p0 = Number.parseFloat(priceIndex.get(pool.token0_address) ?? "0");
+    const p1 = Number.parseFloat(priceIndex.get(pool.token1_address) ?? "0");
+    const r0 = Number.parseFloat(fromRawUnits(pool.reserve0, a0.decimals));
+    const r1 = Number.parseFloat(fromRawUnits(pool.reserve1, a1.decimals));
+    const poolLiq = r0 * p0 + r1 * p1;
+
+    for (const addr of [pool.token0_address, pool.token1_address]) {
+      liquidityByAddress.set(addr, (liquidityByAddress.get(addr) ?? 0) + poolLiq);
+    }
+  }
+
+  const ranked = [...assets]
+    .filter((a) => liquidityByAddress.has(a.contract_address))
+    .sort(
+      (a, b) =>
+        (liquidityByAddress.get(b.contract_address) ?? 0) -
+        (liquidityByAddress.get(a.contract_address) ?? 0),
+    )
+    .slice(0, limit);
+
+  return {
+    tokens: ranked.map((asset, index) => ({
+      rank: index + 1,
+      symbol: asset.symbol,
+      price_usd: asset.dex_usd_price ?? asset.dex_price_usd ?? "0",
+      change_24h: "N/A",
+      volume_24h: "N/A",
+    })),
+  };
+}
+
+/**
+ * Fetch enriched balance data for a wallet.
+ */
+export async function fetchBalanceData(includeAll: boolean): Promise<BalanceData> {
+  const config = await loadConfig();
+  const address = getWalletAddress(config);
+  const tonBalance = await getBalance(address);
+
+  const assets = await cachedGetAssets();
+  const priceIndex = buildPriceIndex(assets);
+
+  const humanTonBalance = fromRawUnits(tonBalance.balance, TON_DECIMALS);
+  const tonAsset = assets.find((a) => a.symbol.toUpperCase() === "TON");
+  const tonPrice = tonAsset ? (tonAsset.dex_usd_price ?? tonAsset.dex_price_usd ?? "0") : "0";
+  const tonUsd = calcUsdValue(humanTonBalance, tonPrice);
+
+  let totalUsd = Number.parseFloat(tonUsd);
+
+  const jettons = includeAll ? await getJettonBalances(address) : [];
+  const jettonEntries = jettons.map((j) => {
+    const humanBalance = fromRawUnits(j.balance, j.jetton.decimals);
+    const price = priceIndex.get(j.jetton.address) ?? "0";
+    const usdValue = calcUsdValue(humanBalance, price);
+    totalUsd += Number.parseFloat(usdValue);
+    return {
+      symbol: j.jetton.symbol,
+      balance: humanBalance,
+      usd_value: usdValue,
+    };
+  });
+
+  return {
+    address,
+    network: config.network,
+    toncoin: { balance: humanTonBalance, usd_value: tonUsd },
+    jettons: jettonEntries,
+    total_usd: totalUsd.toFixed(2),
+  };
+}
+
+/**
+ * Fetch swap simulation data.
+ */
+export async function fetchSwapSimulation(
+  from: string,
+  to: string,
+  amount: string,
+  slippagePct: string,
+): Promise<SwapSimulationData> {
+  const fromAsset = await cachedFindAssetBySymbol(from);
+  const toAsset = await cachedFindAssetBySymbol(to);
+
+  if (!fromAsset) {
+    throw new CliCommandError(`Token "${from}" not found`, "TOKEN_NOT_FOUND");
+  }
+  if (!toAsset) {
+    throw new CliCommandError(`Token "${to}" not found`, "TOKEN_NOT_FOUND");
+  }
+
+  const slippage = (Number.parseFloat(slippagePct) / 100).toString();
+  const rawUnits = toRawUnits(amount, fromAsset.decimals);
+
+  const result = await simulateSwap({
+    offer_address: fromAsset.contract_address,
+    ask_address: toAsset.contract_address,
+    units: rawUnits,
+    slippage_tolerance: slippage,
+  });
+
+  const expectedAmount = fromRawUnits(result.ask_units, toAsset.decimals);
+  const minReceived = fromRawUnits(result.min_ask_units, toAsset.decimals);
+
+  const assets = await cachedGetAssets();
+  const priceIndex = buildPriceIndex(assets);
+  const fromPrice = priceIndex.get(fromAsset.contract_address) ?? "0";
+  const toPrice = priceIndex.get(toAsset.contract_address) ?? "0";
+
+  return {
+    type: "simulation" as const,
+    from: { symbol: fromAsset.symbol, amount, amount_usd: calcUsdValue(amount, fromPrice) },
+    to: {
+      symbol: toAsset.symbol,
+      expected_amount: expectedAmount,
+      amount_usd: calcUsdValue(expectedAmount, toPrice),
+    },
+    price_impact: result.price_impact,
+    fee: result.fee_units ? fromRawUnits(result.fee_units, toAsset.decimals) : "0",
+    minimum_received: minReceived,
+    slippage_tolerance: `${slippagePct}%`,
+    route: result.route ?? [`${fromAsset.symbol} → ${toAsset.symbol}`],
+  };
+}
+
+/**
+ * Fetch transaction history for the configured wallet.
+ */
+export async function fetchHistoryData(limit: number): Promise<HistoryData> {
+  const config = await loadConfig();
+  const address = getWalletAddress(config);
+  const events = await getTransactions(address, limit);
+
+  return {
+    address,
+    transactions: events.map((e) => ({
+      event_id: e.event_id,
+      timestamp: new Date(e.timestamp * 1000).toISOString(),
+      type: e.actions[0]?.type ?? "unknown",
+      description: e.actions[0]?.simple_preview?.description ?? "—",
+      status: e.actions[0]?.status ?? "unknown",
+    })),
+    total: events.length,
+  };
+}
+
+/**
+ * Fetch comprehensive research data for a token.
+ */
+export async function fetchResearchData(symbol: string): Promise<ResearchData> {
+  const token = await fetchPriceData(symbol);
+  const assets = await cachedGetAssets();
+  const pools = await cachedGetPools();
+  const priceIndex = buildPriceIndex(assets);
+  const assetByAddress = new Map(assets.map((a) => [a.contract_address, a]));
+
+  // Find all pools containing this token
+  const relatedPools = pools.filter(
+    (p) => p.token0_address === token.address || p.token1_address === token.address,
+  );
+
+  let totalLiquidity = 0;
+  let topPair = "—";
+  let topLiq = 0;
+
+  const poolDataList = relatedPools.map((pool) => {
+    const a0 = assetByAddress.get(pool.token0_address);
+    const a1 = assetByAddress.get(pool.token1_address);
+    const s0 = a0?.symbol ?? "???";
+    const s1 = a1?.symbol ?? "???";
+    const d0 = a0?.decimals ?? 9;
+    const d1 = a1?.decimals ?? 9;
+    const p0 = Number.parseFloat(priceIndex.get(pool.token0_address) ?? "0");
+    const p1 = Number.parseFloat(priceIndex.get(pool.token1_address) ?? "0");
+    const hr0 = fromRawUnits(pool.reserve0, d0);
+    const hr1 = fromRawUnits(pool.reserve1, d1);
+    const liq =
+      Number.parseFloat(calcUsdValue(hr0, String(p0))) +
+      Number.parseFloat(calcUsdValue(hr1, String(p1)));
+    totalLiquidity += liq;
+
+    if (liq > topLiq) {
+      topLiq = liq;
+      topPair = `${s0}/${s1}`;
+    }
+
+    return {
+      pool_address: pool.address,
+      token0: { symbol: s0, reserve: hr0 },
+      token1: { symbol: s1, reserve: hr1 },
+      liquidity_usd: liq.toFixed(2),
+      volume_24h: "N/A",
+      fee_rate: pool.lp_fee ?? "0.3%",
+      apy: pool.apy_1d,
+    };
+  });
+
+  return {
+    token,
+    pools: poolDataList,
+    summary: {
+      total_liquidity_usd: totalLiquidity.toFixed(2),
+      pool_count: poolDataList.length,
+      top_pair: topPair,
+    },
+  };
+}

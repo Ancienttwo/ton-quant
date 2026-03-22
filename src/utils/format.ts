@@ -2,8 +2,10 @@ import chalk from "chalk";
 import Table from "cli-table3";
 import type {
   BalanceData,
+  HistoryData,
   PoolData,
   PriceData,
+  ResearchData,
   SwapSimulationData,
   TrendingData,
 } from "../types/cli.js";
@@ -110,4 +112,55 @@ export function formatSwapSimulation(data: SwapSimulationData): string {
     { Route: data.route.join(" → ") },
   );
   return `${chalk.bold("Swap Simulation")}\n${table.toString()}`;
+}
+
+/**
+ * Format transaction history for human-readable output.
+ */
+export function formatHistory(data: HistoryData): string {
+  const lines = [
+    chalk.bold(`Transaction History: ${data.address}`),
+    chalk.dim(`Showing ${data.transactions.length} of ${data.total} transactions`),
+    "",
+  ];
+  const table = new Table({
+    head: ["Time", "Type", "Description", "Status"],
+    style: { head: ["cyan"] },
+  });
+  for (const tx of data.transactions) {
+    table.push([
+      tx.timestamp,
+      tx.type,
+      tx.description,
+      tx.status === "ok" ? chalk.green("ok") : chalk.red(tx.status),
+    ]);
+  }
+  lines.push(table.toString());
+  return lines.join("\n");
+}
+
+/**
+ * Format research report for human-readable output.
+ */
+export function formatResearch(data: ResearchData): string {
+  const lines = [
+    chalk.bold(`Research Report: ${data.token.symbol} (${data.token.name})`),
+    "",
+    formatPrice(data.token),
+    "",
+    chalk.bold("Pools:"),
+  ];
+  for (const pool of data.pools) {
+    lines.push(
+      `  ${pool.token0.symbol}/${pool.token1.symbol} — Liquidity: $${pool.liquidity_usd} — Fee: ${pool.fee_rate}`,
+    );
+  }
+  lines.push(
+    "",
+    chalk.bold("Summary:"),
+    `  Total Liquidity: $${data.summary.total_liquidity_usd}`,
+    `  Pool Count: ${data.summary.pool_count}`,
+    `  Top Pair: ${data.summary.top_pair}`,
+  );
+  return lines.join("\n");
 }
