@@ -1,0 +1,50 @@
+# ===== Dot-Prefixed Directories =====
+.*/
+
+# ===== Keep AI workflow visible in git =====
+!.ai/
+!.claude/
+
+# ===== Build Artifacts =====
+artifacts/
+dist/
+build/
+coverage/
+
+# ===== Environment Variables =====
+.env
+.env.*
+!.env.example
+
+# ===== Dependencies =====
+node_modules/
+.pnpm-store/
+
+# ===== OS Metadata =====
+.DS_Store
+
+# ===== Logs & Debug =====
+*.log
+npm-debug.log*
+pnpm-debug.log*
+debug.log
+
+# ===== Package Archives =====
+*.tar.gz
+*.tgz
+*.zip
+
+# ===== Database =====
+*.sqlite
+*.db
+*.sql.gz
+
+# ===== Secrets & Keys =====
+*.pem
+*.key
+*.p12
+secrets/
+
+# ===== TON / Crypto Specific =====
+*.mnemonics
+*.seed
