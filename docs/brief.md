@@ -1,21 +1,37 @@
 # TonQuant — Project Brief
 
 ## What
-TonQuant 是一个命令行工具，让 AI Agent（如 OpenClaw）和开发者能够在 TON 区块链上进行 DeFi 市场研究和 DEX 交易。
+TonQuant 是一个面向 AI Agent 的 TON 量化研究 CLI。它分成两层产品能力：
+
+- **Phase 0**: 轻量 TON DeFi 支持命令，用于价格、池子、余额、swap 模拟和市场摘要
+- **Phase 1**: quant-first 命令面，用于数据抓取、因子计算、回测、预设和 autoresearch
 
 ## Why
-- TON 生态有 183 个 AI bot（4430 万 MAU），但零个 top-20 bot 进行链上交易
-- OpenClaw 的 ClawHub 13,700+ skills 中没有 TON DeFi 工具
-- STON.fi 有公开 API 但没有 AI Agent 友好的 CLI 封装
+
+- TON 生态缺少可被 Agent 稳定调用的量化研究基础设施
+- 仅有市场查询命令不足以支撑“数据 -> 因子 -> 回测 -> 自动迭代”的研究闭环
+- `comp-agent` 已经验证了 quant 子系统的高价值边界：typed schemas、runner、artifact/state contract
+- TonQuant 的机会不是再做一个 DEX 信息工具，而是把 TON 市场接到这条量化流水线上
 
 ## Who
-- **主要用户**: AI Agent（通过 shell exec 调用 + `--json` 解析）
-- **次要用户**: 开发者/交易者（终端直接使用）
+
+- **主要用户**: AI Agent，通过 shell exec + `--json` 消费稳定输出
+- **次要用户**: 开发者、研究者、交易者，在终端直接运行量化工作流
+
+## Product Direction
+
+- 当前支持命令保留，用于钱包和市场观察
+- 主产品方向转为 TON quant research CLI
+- 文档和代码结构都以 `src/quant/` 作为后续主线边界
 
 ## Target
+
 TON AI Agent Hackathon · 赛道 1: Agent 基础设施 ($10,000)
 
 ## Success Criteria
-- 所有 P0 命令可用且 `--json` 输出符合 schema
-- OpenClaw 可通过 SKILL.md 正确调用所有命令
-- 至少一个端到端 demo 展示 Agent 调用 TonQuant 完成交易流程
+
+- Agent 可运行至少一个完整 quant 流程:
+  - `data fetch -> factor compute -> backtest run`
+- Agent 可初始化并运行一个 TON autoresearch track
+- 现有 `price` / `balance` 等支持命令继续可用，不要求走 quant runner
+- Quant 相关命令、类型和 artifact/state contract 在文档与代码中保持一致
