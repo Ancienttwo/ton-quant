@@ -112,3 +112,10 @@ PLAN_LOOP:
 - Mark done only with verification evidence.
 - Convert user corrections into prevention rules in `tasks/lessons.md`.
 - Use `docs/PROGRESS.md` for milestone updates only, not the active execution log.
+
+## Design System
+Always read `DESIGN.md` before making any visual or UI decisions.
+All font choices, colors, spacing, and aesthetic direction are defined there.
+Do not deviate without explicit user approval.
+In QA mode, flag any code that doesn't match DESIGN.md.
+CLI colors: Primary → `chalk.cyan`, Success → `chalk.green`, Error → `chalk.red`, Secondary → `chalk.yellow`.
