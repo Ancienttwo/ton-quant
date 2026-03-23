@@ -1,4 +1,5 @@
 import { TerminalDemo } from "./components/TerminalDemo";
+import { MarketplaceSection } from "./components/MarketplaceSection";
 import "./App.css";
 
 function App() {
@@ -18,8 +19,8 @@ function App() {
             <a href="https://github.com/Ancienttwo/ton-quant" target="_blank" rel="noreferrer">
               GitHub
             </a>
-            <a href="#demo" className="nav-cta">
-              Live Demo
+            <a href="#quickstart" className="nav-cta">
+              Get Started
             </a>
           </div>
         </div>
@@ -30,27 +31,24 @@ function App() {
         <div className="hero-inner">
           <div className="hero-badge">
             <span className="badge-dot" />
-            TON AI Agent Hackathon &middot; Track 1: Agent Infrastructure
+            Open Protocol for Quantitative Factors
           </div>
 
           <h1 className="hero-title">
-            AI Agents do
+            npm for
             <br />
-            <span className="hero-accent">quant research</span>
-            <br />
-            on TON
+            <span className="hero-accent">trading factors</span>
           </h1>
 
           <p className="hero-sub">
-            One command. Zero human intervention.
+            Publish, discover, and compose quantitative factors.
             <br />
-            Data &rarr; Factors &rarr; Backtest &rarr; Report.
+            AI Agents search the registry, validate with backtests, and compose strategies.
           </p>
 
           <div className="hero-cmd">
             <code>
-              <span className="cmd-prompt">$</span> tonquant autoresearch run --asset TON/USDT
-              --json
+              <span className="cmd-prompt">$</span> tonquant factor top --json
             </code>
           </div>
 
@@ -63,8 +61,8 @@ function App() {
             >
               View on GitHub
             </a>
-            <a href="#demo" className="btn btn-ghost">
-              See it work &darr;
+            <a href="#marketplace" className="btn btn-ghost">
+              Browse Factors &darr;
             </a>
           </div>
         </div>
@@ -74,23 +72,23 @@ function App() {
       <section className="stats">
         <div className="stats-inner">
           <div className="stat">
-            <span className="stat-value">5</span>
-            <span className="stat-label">Factor Types</span>
+            <span className="stat-value">Open</span>
+            <span className="stat-label">Registry</span>
           </div>
           <div className="stat-divider" />
           <div className="stat">
-            <span className="stat-value">3</span>
-            <span className="stat-label">Strategy Presets</span>
+            <span className="stat-value">6</span>
+            <span className="stat-label">Categories</span>
           </div>
           <div className="stat-divider" />
           <div className="stat">
-            <span className="stat-value">135</span>
-            <span className="stat-label">Tests Passing</span>
+            <span className="stat-value">1-Click</span>
+            <span className="stat-label">Backtest</span>
           </div>
           <div className="stat-divider" />
           <div className="stat">
-            <span className="stat-value">&lt;2s</span>
-            <span className="stat-label">Full Pipeline</span>
+            <span className="stat-value">--json</span>
+            <span className="stat-label">Agent-Native</span>
           </div>
         </div>
       </section>
@@ -100,15 +98,18 @@ function App() {
         <div className="demo-inner">
           <h2 className="section-title">
             <span className="section-tag">LIVE</span>
-            Agent-Driven Research Loop
+            Factor Marketplace in Action
           </h2>
           <p className="section-sub">
-            Watch the complete pipeline: fetch market data, compute technical factors, run strategy
-            backtest, and generate a research report — all from a single command.
+            Watch the full flow: browse the leaderboard, search factors, verify with backtest, and
+            compose a strategy &mdash; all from the terminal.
           </p>
           <TerminalDemo />
         </div>
       </section>
+
+      {/* Interactive Marketplace */}
+      <MarketplaceSection />
 
       {/* Features */}
       <section className="features">
@@ -116,35 +117,35 @@ function App() {
           <h2 className="section-title">Built for Agents</h2>
           <div className="feature-grid">
             <div className="feature-card">
+              <div className="feature-icon">&#x2630;</div>
+              <h3>Factor Registry</h3>
+              <p>
+                Publish and discover quantitative factors. Zod-validated schemas, local-first
+                storage.
+              </p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">&#x25B2;</div>
+              <h3>Leaderboard</h3>
+              <p>
+                Factors ranked by Sharpe ratio. See what works &mdash; backtest-verified
+                performance.
+              </p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">+</div>
+              <h3>Factor Composition</h3>
+              <p>
+                Combine factors with weighted algebra. Composed factors become first-class registry
+                entries.
+              </p>
+            </div>
+            <div className="feature-card">
               <div className="feature-icon">{"{ }"}</div>
-              <h3>JSON-First Output</h3>
+              <h3>Agent-Native</h3>
               <p>
-                Every command supports <code>--json</code> for structured agent consumption.
-                Zod-validated contracts.
-              </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">&gt;_</div>
-              <h3>CLI Native</h3>
-              <p>
-                No SDK, no API key. Install with <code>bun install</code>, call from any agent
-                framework.
-              </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">&#x25B3;</div>
-              <h3>Full Quant Pipeline</h3>
-              <p>
-                RSI, MACD, volatility factors. Momentum backtesting with Sharpe, Calmar, Sortino
-                ratios.
-              </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">&#x2699;</div>
-              <h3>Pluggable Backend</h3>
-              <p>
-                TS mock backend for demo. Swap to Python+pandas for production via subprocess
-                boundary.
+                Every command supports <code>--json</code>. Any AI Agent framework can natively
+                consume the registry.
               </p>
             </div>
           </div>
@@ -155,7 +156,7 @@ function App() {
       <section className="quickstart" id="quickstart">
         <div className="quickstart-inner">
           <h2 className="section-title">Quick Start</h2>
-          <p className="section-sub">From zero to your first quant research report in 3 steps.</p>
+          <p className="section-sub">From zero to your first factor strategy in 3 steps.</p>
 
           <div className="steps">
             <div className="step">
@@ -174,18 +175,15 @@ function App() {
             <div className="step">
               <div className="step-number">2</div>
               <div className="step-content">
-                <h3>Explore the market</h3>
+                <h3>Discover factors</h3>
                 <div className="step-code">
                   <code>
-                    <span className="code-comment"># Check TON price</span>
-                    {"\n"}tonquant price TON
+                    <span className="code-comment"># Browse the leaderboard</span>
+                    {"\n"}tonquant factor top
                     {"\n"}
                     {"\n"}
-                    <span className="code-comment"># See trending tokens</span>
-                    {"\n"}tonquant trending --limit 5{"\n"}
-                    {"\n"}
-                    <span className="code-comment"># View available strategy presets</span>
-                    {"\n"}tonquant preset list
+                    <span className="code-comment"># Search by category</span>
+                    {"\n"}tonquant factor discover --category momentum
                   </code>
                 </div>
               </div>
@@ -194,17 +192,16 @@ function App() {
             <div className="step">
               <div className="step-number">3</div>
               <div className="step-content">
-                <h3>Run your first research</h3>
+                <h3>Validate &amp; compose</h3>
                 <div className="step-code">
                   <code>
-                    <span className="code-comment">
-                      # Full pipeline: data → factors → backtest → report
-                    </span>
-                    {"\n"}tonquant autoresearch run --asset TON/USDT
+                    <span className="code-comment"># One-click backtest</span>
+                    {"\n"}tonquant factor backtest ton_momentum_1d --period 90d
                     {"\n"}
                     {"\n"}
-                    <span className="code-comment"># Or get JSON output for your AI agent</span>
-                    {"\n"}tonquant autoresearch run --asset TON/USDT --json
+                    <span className="code-comment"># Compose a strategy from multiple factors</span>
+                    {"\n"}tonquant factor compose \{"\n"}
+                    {"  "}--factors ton_momentum_1d:0.6,not_vol_revert:0.4 --json
                   </code>
                 </div>
               </div>
@@ -231,21 +228,20 @@ function App() {
         <div className="arch-inner">
           <h2 className="section-title">Architecture</h2>
           <pre className="arch-diagram">{`
-  External Agent (OpenClaw / Claude Code)
+  AI Agent (OpenClaw / Claude Code / Any Framework)
     |
     v
-  tonquant autoresearch run --asset TON/USDT
+  tonquant factor top --json            ← discover
     |
     v
-  Orchestrator
-    |--- preset show  --> load strategy params
-    |--- data fetch   --> OHLCV market data
-    |--- factor compute --> RSI, MACD, volatility
-    |--- backtest run --> momentum strategy
+  Factor Registry (~/.tonquant/registry/)
+    |--- factor discover  --> search & filter
+    |--- factor backtest  --> verify performance
+    |--- factor compose   --> weighted algebra
+    |--- factor report    --> social proof
     |
     v
-  Research Report (.md)
-  + JSON metrics { sharpe, return, recommendation }
+  Strategy = f(factor₁ × w₁ + factor₂ × w₂ + ...)
           `}</pre>
         </div>
       </section>
@@ -253,11 +249,9 @@ function App() {
       {/* CTA */}
       <section className="cta">
         <div className="cta-inner">
-          <h2>Start researching TON in 30 seconds</h2>
+          <h2>Find alpha in 30 seconds</h2>
           <div className="cta-cmd">
-            <code>
-              bun install -g tonquant &amp;&amp; tonquant autoresearch run --asset TON/USDT
-            </code>
+            <code>bun install -g tonquant &amp;&amp; tonquant factor top</code>
           </div>
           <a
             href="https://github.com/Ancienttwo/ton-quant"
@@ -274,7 +268,7 @@ function App() {
       <footer className="footer">
         <div className="footer-inner">
           <span className="footer-logo">[TonQuant]</span>
-          <span className="footer-text">TON AI Agent Hackathon 2026</span>
+          <span className="footer-text">Agent-Native Factor Marketplace</span>
           <span className="footer-text">MIT License</span>
         </div>
       </footer>

@@ -16,55 +16,54 @@ interface TermLine {
 }
 
 const DEMO_LINES: TermLine[] = [
-  // Scene 1: Price check (~4s)
-  { text: "$ tonquant price TON", type: "prompt", delay: 0 },
-  { text: "  TON (TON)", type: "header", delay: 1800 },
-  { text: "    Price:     $1.30", type: "data", delay: 2100 },
-  { text: "    Volume:    $1,644,061", type: "data", delay: 2300 },
-  { text: "", type: "dim", delay: 3500 },
+  // Scene 1: Factor Leaderboard (~4s)
+  { text: "$ tonquant factor top --limit 5", type: "prompt", delay: 0 },
+  { text: "", type: "dim", delay: 1200 },
+  { text: "  Factor Leaderboard", type: "header", delay: 1500 },
+  { text: "  ────────────────────────────────────────────────", type: "divider", delay: 1700 },
+  { text: "  #1  ton_momentum_1d   1.8402  +42.3%  68%  mom", type: "recommendation", delay: 2200 },
+  { text: "  #2  not_vol_revert    1.4521  +31.7%  62%  vol", type: "metric", delay: 2600 },
+  { text: "  #3  dex_liq_flow      1.2103  +24.5%  59%  liq", type: "metric", delay: 3000 },
+  { text: "  #4  rsi_oversold_14d  0.9814  +18.2%  55%  mom", type: "dim", delay: 3300 },
+  { text: "  #5  whale_sentiment   0.8701  +15.1%  53%  sent", type: "dim", delay: 3600 },
+  { text: "  5 factors ranked by Sharpe", type: "dim", delay: 4000 },
+  { text: "", type: "dim", delay: 4500 },
 
-  // Scene 2: Autoresearch command (~2s typing)
-  {
-    text: "$ tonquant autoresearch run --asset TON/USDT --factors rsi,macd,volatility",
-    type: "prompt",
-    delay: 4500,
-  },
-  { text: "", type: "dim", delay: 6500 },
+  // Scene 2: Discover (~4s)
+  { text: "$ tonquant factor discover --category momentum --min-sharpe 1.0", type: "prompt", delay: 5000 },
+  { text: "", type: "dim", delay: 6200 },
+  { text: "  Factor Search", type: "header", delay: 6500 },
+  { text: "  ────────────────────────────────────────────────", type: "divider", delay: 6700 },
+  { text: "  ton_momentum_1d   mom  1.8402  TON    1d  free", type: "data", delay: 7200 },
+  { text: "  rsi_oversold_14d  mom  0.9814  TON    1d  free", type: "data", delay: 7500 },
+  { text: "  2 factors found (filtered: category=momentum)", type: "dim", delay: 8000 },
+  { text: "", type: "dim", delay: 8500 },
 
-  // Scene 3: Pipeline header (~1s)
-  { text: "  Autoresearch", type: "header", delay: 7000 },
-  { text: "  ────────────────────────────────────────────────", type: "divider", delay: 7200 },
-  { text: "  Status: SUCCESS", type: "success", delay: 7800 },
-  { text: "", type: "dim", delay: 8200 },
+  // Scene 3: One-click Backtest (~5s)
+  { text: "$ tonquant factor backtest ton_momentum_1d --period 90d", type: "prompt", delay: 9000 },
+  { text: "", type: "dim", delay: 10500 },
+  { text: "  Factor Backtest: ton_momentum_1d", type: "header", delay: 10800 },
+  { text: "  ────────────────────────────────────────────────", type: "divider", delay: 11000 },
+  { text: "  Sharpe Ratio     1.8402", type: "metric", delay: 11500 },
+  { text: "  Total Return     +42.3%", type: "metric", delay: 12000 },
+  { text: "  Max Drawdown     8.21%", type: "data", delay: 12400 },
+  { text: "  Win Rate         68.0%", type: "data", delay: 12800 },
+  { text: "  Trade Count      142", type: "data", delay: 13100 },
+  { text: "  Period: 2026-01-01 → 2026-03-01 (90d)", type: "dim", delay: 13500 },
+  { text: "", type: "dim", delay: 14000 },
 
-  // Scene 4: Pipeline steps — each step takes ~1.5s (simulates real computation)
-  { text: "  \u2713 data fetch      90 bars for TON/USDT", type: "success", delay: 9000 },
-  { text: "  \u2713 factor compute  3 factors computed", type: "success", delay: 10800 },
-  { text: "  \u2713 backtest        +12.35% return, sharpe 1.84", type: "success", delay: 12500 },
-  { text: "  \u2713 report          Report generated", type: "success", delay: 14000 },
-  { text: "", type: "dim", delay: 14800 },
-
-  // Scene 5: Metrics table (~4s)
-  { text: "  ────────────────────────────────────────────────", type: "divider", delay: 15200 },
-  { text: "  Metric           Value", type: "dim", delay: 15600 },
-  { text: "  ─────────────    ──────", type: "divider", delay: 15800 },
-  { text: "  Recommendation   BUY", type: "recommendation", delay: 16500 },
-  { text: "  Sharpe Ratio     1.8402", type: "metric", delay: 17200 },
-  { text: "  Total Return     +12.35%", type: "metric", delay: 17800 },
-  { text: "  Max Drawdown     4.12%", type: "data", delay: 18300 },
-  { text: "  Win Rate         66.7%", type: "data", delay: 18700 },
-  { text: "  Trades           3", type: "data", delay: 19000 },
-  { text: "", type: "dim", delay: 19500 },
-
-  // Scene 6: Factor summary (~2s)
-  { text: "  Factors:", type: "header", delay: 20000 },
-  { text: "    rsi:        58.42", type: "data", delay: 20500 },
-  { text: "    macd:       0.052341", type: "data", delay: 20900 },
-  { text: "    volatility: 27.24%", type: "data", delay: 21300 },
-  { text: "", type: "dim", delay: 22000 },
-
-  // Scene 7: Report path
-  { text: "  Report: ~/.tonquant/quant/autoresearch/report.md", type: "info", delay: 22500 },
+  // Scene 4: Compose (~5s)
+  { text: "$ tonquant factor compose --factors ton_momentum_1d:0.6,not_vol_revert:0.4", type: "prompt", delay: 14500 },
+  { text: "", type: "dim", delay: 16200 },
+  { text: "  Factor Composition", type: "header", delay: 16500 },
+  { text: "  ────────────────────────────────────────────────", type: "divider", delay: 16700 },
+  { text: "  Components:", type: "dim", delay: 17200 },
+  { text: "    0.60 × ton_momentum_1d   (Sharpe: 1.8402)", type: "data", delay: 17600 },
+  { text: "    0.40 × not_vol_revert    (Sharpe: 1.4521)", type: "data", delay: 18000 },
+  { text: "", type: "dim", delay: 18500 },
+  { text: "  ID:          composed_mom_vol", type: "info", delay: 19000 },
+  { text: "  Est. Sharpe: ~1.6850 (weighted)", type: "metric", delay: 19400 },
+  { text: "  Status:      Saved to registry", type: "success", delay: 19800 },
 ];
 
 const TYPE_COLORS: Record<string, string> = {

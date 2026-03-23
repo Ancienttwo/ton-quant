@@ -3,8 +3,11 @@
   --primary-dim: rgba(0, 229, 255, 0.15);
   --primary-glow: rgba(0, 229, 255, 0.3);
   --secondary: #ffb800;
+  --secondary-dim: rgba(255, 184, 0, 0.15);
   --success: #00e676;
+  --success-dim: rgba(0, 230, 118, 0.15);
   --error: #ff5252;
+  --error-dim: rgba(255, 82, 82, 0.15);
   --info: #40c4ff;
 
   --surface: #0a0e14;
