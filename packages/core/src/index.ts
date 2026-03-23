@@ -153,3 +153,12 @@ export {
 } from "./services/reports.js";
 // File schemas (alerts, reports)
 export { AlertsFileSchema, ReportsFileSchema } from "./types/factor-registry.js";
+// Seed content
+export { SEED_FACTORS } from "./data/seed-factors.js";
+export { seedRegistry } from "./services/seed.js";
+// Skill export
+export {
+  exportTopFactorsAsSkills,
+  formatSkillMarkdown,
+  type SkillDefinition,
+} from "./services/skill-export.js";

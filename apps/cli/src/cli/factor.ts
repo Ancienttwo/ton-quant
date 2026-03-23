@@ -7,6 +7,8 @@ import { registerFactorComposeCommands } from "./factor-compose.js";
 import { registerFactorBacktestCommands } from "./factor-backtest.js";
 import { registerFactorAlertCommands } from "./factor-alert.js";
 import { registerFactorReportCommands } from "./factor-report.js";
+import { registerFactorSeedCommands } from "./factor-seed.js";
+import { registerFactorSkillCommands } from "./factor-skill.js";
 
 export function registerFactorCommand(program: Command): void {
   const command = program.command("factor").description("Factor computation & marketplace");
@@ -48,4 +50,8 @@ export function registerFactorCommand(program: Command): void {
   registerFactorBacktestCommands(command);
   registerFactorAlertCommands(command);
   registerFactorReportCommands(command);
+
+  // Seed and skill export
+  registerFactorSeedCommands(command);
+  registerFactorSkillCommands(command);
 }

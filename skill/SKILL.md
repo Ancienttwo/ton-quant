@@ -315,6 +315,111 @@ tonquant swap TON NOT 5 --slippage 2 --json
 | `NOT_IMPLEMENTED` | Feature not available | Use alternative (e.g., simulate instead of execute) |
 | `UNKNOWN_ERROR` | Unexpected error | Report with full error message |
 
+## Factor Marketplace Commands
+
+### `factor seed`
+
+Populate registry with 15 built-in starter factors covering all categories.
+
+```bash
+tonquant factor seed --json
+```
+
+### `factor discover`
+
+Search for factors with filters.
+
+```bash
+tonquant factor discover --category momentum --min-sharpe 1.0 --json
+```
+
+**Output (`data`):** Array of `FactorMetaPublic` objects with id, name, category, backtest metrics.
+
+### `factor top`
+
+Show factor leaderboard ranked by Sharpe ratio.
+
+```bash
+tonquant factor top --limit 5 --json
+```
+
+### `factor subscribe <factorId>`
+
+Subscribe to a factor for updates.
+
+```bash
+tonquant factor subscribe mom_30d_ton --json
+```
+
+### `factor compose`
+
+Create a weighted composite from multiple factors.
+
+```bash
+tonquant factor compose --name "Momentum Blend" --components "mom_30d_ton:0.6,vol_30d_ton:0.4" --json
+```
+
+### `factor backtest <factorId>`
+
+Run one-click backtest for a registry factor.
+
+```bash
+tonquant factor backtest mom_30d_ton --start-date 2025-06-01 --json
+```
+
+### `factor alert-set <factorId>`
+
+Set a threshold alert on a factor.
+
+```bash
+tonquant factor alert-set mom_30d_ton --condition above --threshold 1.5 --json
+```
+
+### `factor report-submit <factorId>`
+
+Submit a performance report (social proof).
+
+```bash
+tonquant factor report-submit mom_30d_ton --return 15.5 --period 30d --agent-id my_agent --json
+```
+
+### `factor skill-export`
+
+Export top factors as OpenClaw skill definitions (Markdown).
+
+```bash
+tonquant factor skill-export --limit 5 --output skill/factors.md
+```
+
+## Agent Workflow Examples
+
+### Discovery → Subscribe → Backtest
+
+```
+1. tonquant factor seed --json                          # Populate registry
+2. tonquant factor discover --min-sharpe 1.5 --json     # Find high-quality factors
+3. tonquant factor subscribe <factorId> --json          # Subscribe to updates
+4. tonquant factor backtest <factorId> --json           # Validate performance
+```
+
+### Compose → Alert → Report
+
+```
+1. tonquant factor compose --name "Blend" --components "mom_30d_ton:0.6,vol_30d_ton:0.4" --json
+2. tonquant factor alert-set <compositeId> --condition above --threshold 1.5 --json
+3. tonquant factor report-submit <factorId> --return 12.5 --period 30d --json
+```
+
+## Recommended Companion Skills
+
+- **opennews**: Use `search_news_by_coin` to contextualize strategy performance.
+  Before promoting autoresearch candidates, check recent news for the traded token.
+  Before executing swaps, verify no high-impact negative news (aiRating > 80, signal = bearish).
+
+```bash
+npx skills add https://github.com/6551Team/opennews-mcp --skill opennews
+```
+
 ## Limitations
 
 - `change_24h`: Returns "N/A" — STON.fi does not provide historical price snapshots
