@@ -126,3 +126,7 @@ export type FactorAlert = z.infer<typeof FactorAlertSchema>;
 export const AlertsFileSchema = z.object({
   alerts: z.array(FactorAlertSchema).default([]),
 });
+
+export const ReportsFileSchema = z.object({
+  reports: z.array(FactorPerformanceReportSchema).default([]),
+});

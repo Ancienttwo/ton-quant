@@ -139,3 +139,17 @@ export {
   DuplicateCompositeError,
   CompositeNotFoundError,
 } from "./services/compose.js";
+// Factor Alert Service
+export {
+  setAlert,
+  listAlerts,
+  removeAlert,
+} from "./services/alerts.js";
+// Factor Report Service
+export {
+  submitReport,
+  listReports,
+  ReportValidationError,
+} from "./services/reports.js";
+// File schemas (alerts, reports)
+export { AlertsFileSchema, ReportsFileSchema } from "./types/factor-registry.js";

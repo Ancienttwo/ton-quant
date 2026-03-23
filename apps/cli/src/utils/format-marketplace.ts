@@ -235,7 +235,7 @@ export function formatFactorAlertList(alerts: FactorAlert[]): string {
       `  ${chalk.dim("No active alerts.")}`,
       "",
       `  ${chalk.dim("Set one:")}`,
-      `    ${chalk.cyan("tonquant factor alert set --help")}`,
+      `    ${chalk.cyan("tonquant factor alert-set --help")}`,
       "",
     ].join("\n");
   }
@@ -283,6 +283,41 @@ export function formatFactorReport(report: FactorPerformanceReport): string {
     `  ${label("Return:")}     ${pctColor(report.returnPct)} (${report.period})`,
     `  ${label("Agent:")}      ${chalk.cyan(report.agentId)}`,
     `  ${label("Status:")}     ${chalk.yellow("unverified")}`,
+    "",
+  ].join("\n");
+}
+
+export function formatFactorReportList(reports: FactorPerformanceReport[]): string {
+  if (reports.length === 0) {
+    return [
+      "",
+      header("Performance Reports"),
+      divider(),
+      `  ${chalk.dim("No reports submitted yet.")}`,
+      "",
+    ].join("\n");
+  }
+
+  const table = new Table({
+    head: ["Factor", "Return", "Period", "Agent", "Status"],
+    style: { head: ["cyan"] },
+  });
+
+  for (const r of reports) {
+    table.push([
+      chalk.cyan(r.factorId),
+      pctColor(r.returnPct),
+      r.period,
+      truncate(r.agentId, 20),
+      r.verified ? chalk.green("verified") : chalk.yellow("unverified"),
+    ]);
+  }
+
+  return [
+    "",
+    header(`Performance Reports (${reports.length})`),
+    divider(),
+    table.toString(),
     "",
   ].join("\n");
 }
