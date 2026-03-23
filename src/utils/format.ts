@@ -11,6 +11,18 @@ import type {
 } from "../types/cli.js";
 
 /**
+ * Format a raw price string to a human-readable number.
+ * Prices >= $1 show 2 decimals, < $1 show up to 6 significant digits.
+ */
+export function formatUsd(raw: string): string {
+  const n = parseFloat(raw);
+  if (Number.isNaN(n)) return raw;
+  if (n >= 1) return n.toFixed(2);
+  if (n >= 0.01) return n.toFixed(4);
+  return n.toPrecision(4);
+}
+
+/**
  * Color a percentage change string green (positive) or red (negative).
  */
 export function greenRed(value: string): string {
@@ -29,7 +41,7 @@ export function greenRed(value: string): string {
 export function formatPrice(data: PriceData): string {
   const lines = [
     chalk.bold(`${data.symbol} (${data.name})`),
-    `  Price:     ${chalk.cyan(`$${data.price_usd}`)}`,
+    `  Price:     ${chalk.cyan(`$${formatUsd(data.price_usd)}`)}`,
     `  24h:       ${greenRed(data.change_24h)}`,
     `  Volume:    $${data.volume_24h}`,
     data.market_cap ? `  Mkt Cap:   $${data.market_cap}` : null,
@@ -70,7 +82,7 @@ export function formatTrending(data: TrendingData): string {
     table.push([
       token.rank,
       chalk.bold(token.symbol),
-      `$${token.price_usd}`,
+      `$${formatUsd(token.price_usd)}`,
       greenRed(token.change_24h),
       `$${token.volume_24h}`,
     ]);
@@ -86,12 +98,12 @@ export function formatBalance(data: BalanceData): string {
     chalk.bold(`Wallet: ${data.address}`),
     chalk.dim(`Network: ${data.network}`),
     "",
-    `  TON:  ${chalk.cyan(data.toncoin.balance)} ($${data.toncoin.usd_value})`,
+    `  TON:  ${chalk.cyan(data.toncoin.balance)} ($${formatUsd(data.toncoin.usd_value)})`,
   ];
   for (const jetton of data.jettons) {
-    lines.push(`  ${jetton.symbol}: ${chalk.cyan(jetton.balance)} ($${jetton.usd_value})`);
+    lines.push(`  ${jetton.symbol}: ${chalk.cyan(jetton.balance)} ($${formatUsd(jetton.usd_value)})`);
   }
-  lines.push("", chalk.bold(`  Total: $${data.total_usd}`));
+  lines.push("", chalk.bold(`  Total: $${formatUsd(data.total_usd)}`));
   return lines.join("\n");
 }
 
