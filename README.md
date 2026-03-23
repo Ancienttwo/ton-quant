@@ -3,6 +3,12 @@
 TON DeFi market research and trading CLI — built for AI Agents.
 
 > **TON AI Agent Hackathon** · Track 1: Agent Infrastructure
+>
+> **Website**: [tonquant.com](https://tonquant.com) · **npm**: `bun install -g tonquant`
+
+<p align="center">
+  <img src="demo/demo.svg" alt="TonQuant Demo" width="800" />
+</p>
 
 ## What is TonQuant?
 
