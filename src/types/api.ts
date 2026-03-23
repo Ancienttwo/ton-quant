@@ -10,9 +10,9 @@ export const AssetSchema = z.object({
   symbol: z.string(),
   display_name: z.string().optional(),
   decimals: z.number(),
-  image_url: z.string().optional(),
-  dex_usd_price: z.string().optional(),
-  dex_price_usd: z.string().optional(),
+  image_url: z.string().nullish(),
+  dex_usd_price: z.string().nullish(),
+  dex_price_usd: z.string().nullish(),
 });
 export type Asset = z.infer<typeof AssetSchema>;
 
