@@ -1,10 +1,36 @@
 {
   "name": "tonquant",
   "version": "0.1.0",
+  "description": "AI-native quant research CLI for the TON blockchain — data, factors, backtesting, and automated research loops",
   "type": "module",
   "bin": {
     "tonquant": "./src/index.ts"
   },
+  "files": [
+    "src/",
+    "quant-backend/",
+    "README.md",
+    "DESIGN.md",
+    "skill/"
+  ],
+  "keywords": [
+    "ton",
+    "defi",
+    "quant",
+    "trading",
+    "cli",
+    "ai-agent",
+    "backtest",
+    "stonfi",
+    "blockchain"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ancienttwo/ton-quant"
+  },
+  "homepage": "https://tonquant.com",
+  "license": "MIT",
+  "author": "ancienttwo",
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
@@ -27,5 +53,8 @@
     "@biomejs/biome": "latest",
     "@types/bun": "latest",
     "typescript": "latest"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
   }
 }
