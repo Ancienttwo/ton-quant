@@ -30,6 +30,7 @@ export const PoolSchema = z.object({
   apy_1d: z.string().optional(),
   apy_7d: z.string().optional(),
   apy_30d: z.string().optional(),
+  volume_24h_usd: z.string().nullish(),
   deprecated: z.boolean().optional(),
 });
 export type Pool = z.infer<typeof PoolSchema>;

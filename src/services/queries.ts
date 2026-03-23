@@ -25,11 +25,24 @@ const TON_DECIMALS = 9;
 /**
  * Fetch enriched price data for a token symbol.
  */
+function aggregateVolume(pools: Awaited<ReturnType<typeof cachedGetPools>>, address: string): string {
+  let total = 0;
+  for (const pool of pools) {
+    if (pool.token0_address === address || pool.token1_address === address) {
+      total += Number.parseFloat(pool.volume_24h_usd ?? "0");
+    }
+  }
+  return total > 0 ? total.toFixed(2) : "N/A";
+}
+
 export async function fetchPriceData(symbol: string): Promise<PriceData> {
   const asset = await cachedFindAssetBySymbol(symbol);
   if (!asset) {
     throw new CliCommandError(`Token "${symbol}" not found`, "TOKEN_NOT_FOUND");
   }
+
+  const pools = await cachedGetPools();
+  const volume = aggregateVolume(pools, asset.contract_address);
 
   return {
     symbol: asset.symbol,
@@ -38,7 +51,7 @@ export async function fetchPriceData(symbol: string): Promise<PriceData> {
     decimals: asset.decimals,
     price_usd: asset.dex_usd_price ?? asset.dex_price_usd ?? "0",
     change_24h: "N/A",
-    volume_24h: "N/A",
+    volume_24h: volume,
   };
 }
 
@@ -132,7 +145,7 @@ export async function fetchTrendingData(limit: number): Promise<TrendingData> {
       symbol: asset.symbol,
       price_usd: asset.dex_usd_price ?? asset.dex_price_usd ?? "0",
       change_24h: "N/A",
-      volume_24h: "N/A",
+      volume_24h: aggregateVolume(pools, asset.contract_address),
     })),
   };
 }
