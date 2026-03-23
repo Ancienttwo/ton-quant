@@ -1,29 +1,7 @@
 import type { Command } from "commander";
 import { runOrchestrator } from "../quant/orchestrator.js";
+import { formatAutoresearchResult } from "../utils/format-quant.js";
 import { handleCommand } from "../utils/output.js";
-
-function formatOrchestratorResult(data: Record<string, unknown>): string {
-  const steps = data.steps as Array<{ step: string; status: string; summary: string }>;
-  const lines = [`Autoresearch: ${data.status}`, ""];
-
-  for (const step of steps) {
-    const icon = step.status === "completed" ? "+" : "x";
-    lines.push(`  [${icon}] ${step.step}: ${step.summary}`);
-  }
-
-  const result = data.data as Record<string, unknown> | null;
-  if (result) {
-    const metrics = result.metrics as Record<string, unknown>;
-    lines.push(
-      "",
-      `  Recommendation: ${(result.recommendation as string).toUpperCase()}`,
-      `  Sharpe: ${metrics.sharpe}`,
-      `  Return: ${metrics.totalReturn}%`,
-      `  Report: ${result.reportPath}`,
-    );
-  }
-  return lines.join("\n");
-}
 
 export function registerAutoresearchCommand(program: Command): void {
   const command = program
@@ -62,7 +40,7 @@ export function registerAutoresearchCommand(program: Command): void {
             });
             return result as unknown as Record<string, unknown>;
           },
-          formatOrchestratorResult,
+          formatAutoresearchResult,
         );
       },
     );

@@ -1,29 +1,7 @@
 import type { Command } from "commander";
 import { runFactorCompute, runFactorList } from "../quant/api/factor.js";
+import { formatFactorCompute, formatFactorList } from "../utils/format-quant.js";
 import { handleCommand } from "../utils/output.js";
-
-function formatFactorList(data: Record<string, unknown>): string {
-  const factors = data.factors as Array<{
-    id: string;
-    name: string;
-    category: string;
-    description: string;
-  }>;
-  if (!factors?.length) return "No factors available.";
-  return factors.map((f) => `${f.id} (${f.category}): ${f.description}`).join("\n");
-}
-
-function formatFactorCompute(data: Record<string, unknown>): string {
-  const columns = data.factorColumns as string[];
-  const lines = [`Computed ${data.factorCount} factor(s) on ${data.datasetRows} rows`, ""];
-  for (const col of columns) {
-    const val = (data as Record<string, unknown>)[col];
-    if (typeof val === "number") {
-      lines.push(`  ${col}: ${val}`);
-    }
-  }
-  return lines.join("\n");
-}
 
 export function registerFactorCommand(program: Command): void {
   const command = program.command("factor").description("Factor computation [Phase 1]");

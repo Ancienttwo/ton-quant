@@ -1,20 +1,7 @@
 import type { Command } from "commander";
 import { runBacktest } from "../quant/api/backtest.js";
+import { formatBacktest } from "../utils/format-quant.js";
 import { handleCommand } from "../utils/output.js";
-
-function formatBacktest(data: Record<string, unknown>): string {
-  return [
-    `Strategy Backtest Results`,
-    ``,
-    `  Sharpe Ratio:     ${data.sharpe}`,
-    `  Total Return:     ${data.totalReturn}%`,
-    `  Max Drawdown:     ${((data.maxDrawdown as number) * 100).toFixed(2)}%`,
-    `  Win Rate:         ${((data.winRate as number) * 100).toFixed(1)}%`,
-    `  Trade Count:      ${data.tradeCount}`,
-    `  Calmar Ratio:     ${data.calmar}`,
-    `  Sortino Ratio:    ${data.sortino}`,
-  ].join("\n");
-}
 
 export function registerBacktestCommand(program: Command): void {
   const command = program.command("backtest").description("Quant strategy backtesting [Phase 1]");
