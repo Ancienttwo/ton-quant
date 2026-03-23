@@ -131,6 +131,79 @@ function App() {
         </div>
       </section>
 
+      {/* Quick Start */}
+      <section className="quickstart" id="quickstart">
+        <div className="quickstart-inner">
+          <h2 className="section-title">Quick Start</h2>
+          <p className="section-sub">
+            From zero to your first quant research report in 3 steps.
+          </p>
+
+          <div className="steps">
+            <div className="step">
+              <div className="step-number">1</div>
+              <div className="step-content">
+                <h3>Install</h3>
+                <div className="step-code">
+                  <code>
+                    <span className="code-comment"># Requires Bun runtime</span>
+                    {'\n'}curl -fsSL https://bun.sh/install | bash
+                    {'\n'}
+                    {'\n'}<span className="code-comment"># Clone and install TonQuant</span>
+                    {'\n'}git clone https://github.com/Ancienttwo/ton-quant.git
+                    {'\n'}cd ton-quant
+                    {'\n'}bun install
+                    {'\n'}bun link
+                  </code>
+                </div>
+              </div>
+            </div>
+
+            <div className="step">
+              <div className="step-number">2</div>
+              <div className="step-content">
+                <h3>Explore the market</h3>
+                <div className="step-code">
+                  <code>
+                    <span className="code-comment"># Check TON price</span>
+                    {'\n'}tonquant price TON
+                    {'\n'}
+                    {'\n'}<span className="code-comment"># See trending tokens</span>
+                    {'\n'}tonquant trending --limit 5
+                    {'\n'}
+                    {'\n'}<span className="code-comment"># View available strategy presets</span>
+                    {'\n'}tonquant preset list
+                  </code>
+                </div>
+              </div>
+            </div>
+
+            <div className="step">
+              <div className="step-number">3</div>
+              <div className="step-content">
+                <h3>Run your first research</h3>
+                <div className="step-code">
+                  <code>
+                    <span className="code-comment"># Full pipeline: data → factors → backtest → report</span>
+                    {'\n'}tonquant autoresearch run --asset TON/USDT
+                    {'\n'}
+                    {'\n'}<span className="code-comment"># Or get JSON output for your AI agent</span>
+                    {'\n'}tonquant autoresearch run --asset TON/USDT --json
+                  </code>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="quickstart-note">
+            <span className="note-icon">i</span>
+            All commands support <code>--json</code> flag for structured output.
+            See <a href="https://github.com/Ancienttwo/ton-quant/blob/main/skill/SKILL.md" target="_blank" rel="noreferrer">SKILL.md</a> for
+            the full command reference and agent integration guide.
+          </div>
+        </div>
+      </section>
+
       {/* Architecture */}
       <section className="arch">
         <div className="arch-inner">
