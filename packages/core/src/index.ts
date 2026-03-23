@@ -113,3 +113,29 @@ export {
   FactorNotFoundError,
   BacktestValidationError,
 } from "./services/registry.js";
+// Factor Compose Types
+export type {
+  ComponentWeight,
+  CompositeDefinition,
+  CompositeEntry,
+  CompositeIndex,
+} from "./types/factor-compose.js";
+export {
+  ComponentWeightSchema,
+  CompositeDefinitionSchema,
+  CompositeEntrySchema,
+  CompositeIndexSchema,
+} from "./types/factor-compose.js";
+// Factor Compose Service
+export {
+  composeFactors,
+  listComposites,
+  getComposite,
+  deleteComposite,
+  normalizeWeights,
+  deriveBacktest,
+  validateComponents,
+  CompositionValidationError,
+  DuplicateCompositeError,
+  CompositeNotFoundError,
+} from "./services/compose.js";

@@ -4,30 +4,17 @@ import {
   discoverFactors,
   subscribeFactor,
   unsubscribeFactor,
-  listFactors,
   getFactorLeaderboard,
   type FactorMetaPublic,
 } from "@tonquant/core";
 import { handleCommand } from "../utils/output.js";
-import chalk from "chalk";
-
-// ── Human formatters ───────────────────────────────────────
-
-function formatFactorList(factors: FactorMetaPublic[]): string {
-  if (factors.length === 0) return chalk.yellow("No factors found.");
-  const lines = factors.map(
-    (f) =>
-      `  ${chalk.cyan(f.id)} ${chalk.dim(`[${f.category}]`)} ${f.name}\n` +
-      `    Sharpe: ${chalk.green(f.backtest.sharpe.toFixed(2))}  ` +
-      `Drawdown: ${chalk.red(f.backtest.maxDrawdown.toFixed(2))}  ` +
-      `Assets: ${f.assets.join(", ")}`,
-  );
-  return `${chalk.cyan("Factors")} (${factors.length})\n\n${lines.join("\n\n")}`;
-}
-
-function formatSubscription(sub: { factorId: string; subscribedAt: string }): string {
-  return `${chalk.green("Subscribed")} to ${chalk.cyan(sub.factorId)} at ${sub.subscribedAt}`;
-}
+import {
+  formatFactorTop,
+  formatFactorDiscover,
+  formatFactorPublish,
+  formatFactorSubscribe,
+  formatFactorUnsubscribe,
+} from "../utils/format-marketplace.js";
 
 // ── Command registration ───────────────────────────────────
 
@@ -92,7 +79,7 @@ export function registerFactorMarketplaceCommands(factor: Command): void {
 
           return publishFactor(meta, { force: opts.force });
         },
-        (result) => `${chalk.green("Published")} factor ${chalk.cyan(result.id)} (${result.category})`,
+        formatFactorPublish,
       );
     });
 
@@ -106,26 +93,26 @@ export function registerFactorMarketplaceCommands(factor: Command): void {
     .option("--timeframe <tf>", "Filter by timeframe")
     .action(async (opts) => {
       const json = factor.parent?.opts().json ?? false;
+      const filters = {
+        category: opts.category,
+        asset: opts.asset,
+        minSharpe: opts.minSharpe,
+        timeframe: opts.timeframe,
+      };
       await handleCommand(
         { json },
-        async () =>
-          discoverFactors({
-            category: opts.category,
-            asset: opts.asset,
-            minSharpe: opts.minSharpe,
-            timeframe: opts.timeframe,
-          }),
-        formatFactorList,
+        async () => discoverFactors(filters),
+        (factors) => formatFactorDiscover(factors, filters),
       );
     });
 
   // ── subscribe ──
   factor
     .command("subscribe <factorId>")
-    .description("Subscribe to a factor")
+    .description("Subscribe to a factor for update notifications")
     .action(async (factorId: string) => {
       const json = factor.parent?.opts().json ?? false;
-      await handleCommand({ json }, async () => subscribeFactor(factorId), formatSubscription);
+      await handleCommand({ json }, async () => subscribeFactor(factorId), formatFactorSubscribe);
     });
 
   // ── unsubscribe ──
@@ -140,10 +127,7 @@ export function registerFactorMarketplaceCommands(factor: Command): void {
           const removed = unsubscribeFactor(factorId);
           return { factorId, removed };
         },
-        (r) =>
-          r.removed
-            ? `${chalk.yellow("Unsubscribed")} from ${chalk.cyan(r.factorId)}`
-            : `${chalk.dim("Not subscribed")} to ${r.factorId}`,
+        formatFactorUnsubscribe,
       );
     });
 
@@ -160,17 +144,7 @@ export function registerFactorMarketplaceCommands(factor: Command): void {
       await handleCommand(
         { json },
         async () => getFactorLeaderboard({ limit: opts.limit }),
-        (factors) => {
-          if (factors.length === 0) return chalk.yellow("No factors in registry.");
-          const lines = factors.map(
-            (f, i) =>
-              `  ${chalk.dim(`#${i + 1}`)} ${chalk.cyan(f.id)} ` +
-              `Sharpe: ${chalk.green(f.backtest.sharpe.toFixed(2))}  ` +
-              `CAGR: ${chalk.green((f.backtest.cagr * 100).toFixed(1))}%  ` +
-              `Win: ${(f.backtest.winRate * 100).toFixed(0)}%`,
-          );
-          return `${chalk.cyan("Factor Leaderboard")}\n\n${lines.join("\n")}`;
-        },
+        formatFactorTop,
       );
     });
 }

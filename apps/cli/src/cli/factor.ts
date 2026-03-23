@@ -3,6 +3,7 @@ import { runFactorCompute, runFactorList } from "../quant/api/factor.js";
 import { formatFactorCompute, formatFactorList } from "../utils/format-quant.js";
 import { handleCommand } from "../utils/output.js";
 import { registerFactorMarketplaceCommands } from "./factor-core.js";
+import { registerFactorComposeCommands } from "./factor-compose.js";
 
 export function registerFactorCommand(program: Command): void {
   const command = program.command("factor").description("Factor computation & marketplace");
@@ -36,4 +37,7 @@ export function registerFactorCommand(program: Command): void {
 
   // Marketplace commands (publish, discover, subscribe, top, etc.)
   registerFactorMarketplaceCommands(command);
+
+  // Composition commands (compose, composites, composite, composite-delete)
+  registerFactorComposeCommands(command);
 }
