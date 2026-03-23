@@ -57,5 +57,5 @@ export const FactorComputeResultSchema = QuantRunMetaSchema.extend({
   factorCount: z.number().int().nonnegative(),
   symbolCount: z.number().int().nonnegative(),
   factorColumns: z.array(z.string()).default([]),
-});
+}).passthrough();
 export type FactorComputeResult = z.infer<typeof FactorComputeResultSchema>;

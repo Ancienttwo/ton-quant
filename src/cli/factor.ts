@@ -1,28 +1,56 @@
 import type { Command } from "commander";
-import { CliCommandError } from "../utils/output.js";
+import { runFactorCompute, runFactorList } from "../quant/api/factor.js";
+import { handleCommand } from "../utils/output.js";
+
+function formatFactorList(data: Record<string, unknown>): string {
+  const factors = data.factors as Array<{
+    id: string;
+    name: string;
+    category: string;
+    description: string;
+  }>;
+  if (!factors?.length) return "No factors available.";
+  return factors.map((f) => `${f.id} (${f.category}): ${f.description}`).join("\n");
+}
+
+function formatFactorCompute(data: Record<string, unknown>): string {
+  const columns = data.factorColumns as string[];
+  const lines = [`Computed ${data.factorCount} factor(s) on ${data.datasetRows} rows`, ""];
+  for (const col of columns) {
+    const val = (data as Record<string, unknown>)[col];
+    if (typeof val === "number") {
+      lines.push(`  ${col}: ${val}`);
+    }
+  }
+  return lines.join("\n");
+}
 
 export function registerFactorCommand(program: Command): void {
-  const command = program.command("factor").description("Quant factor workflows [Phase 1]");
+  const command = program.command("factor").description("Factor computation [Phase 1]");
 
   command
     .command("list")
-    .description("List available TON quant factors")
+    .description("List available quant factors")
     .action(async () => {
-      throw new CliCommandError(
-        "Quant factor list is not yet implemented. Use the src/quant contract as the target boundary.",
-        "NOT_IMPLEMENTED",
-      );
+      const json = program.opts().json ?? false;
+      await handleCommand({ json }, () => runFactorList(), formatFactorList);
     });
 
   command
     .command("compute")
-    .description("Compute quant factors over TON datasets")
-    .requiredOption("--symbols <symbols...>", "Symbols to evaluate")
-    .requiredOption("--factors <factors...>", "Factor ids to compute")
-    .action(async () => {
-      throw new CliCommandError(
-        "Quant factor compute is not yet implemented. Use the src/quant contract as the target boundary.",
-        "NOT_IMPLEMENTED",
+    .description("Compute factors on TON quant data")
+    .requiredOption("--factors <factors>", "Comma-separated factor IDs (rsi,macd,volatility)")
+    .option("--symbols <symbols>", "Comma-separated symbols", "TON/USDT")
+    .action(async (opts: { factors: string; symbols: string }) => {
+      const json = program.opts().json ?? false;
+      await handleCommand(
+        { json },
+        () =>
+          runFactorCompute({
+            symbols: opts.symbols.split(","),
+            factors: opts.factors.split(","),
+          }),
+        formatFactorCompute,
       );
     });
 }
