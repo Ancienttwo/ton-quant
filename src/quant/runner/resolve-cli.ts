@@ -25,6 +25,11 @@ export function resolveQuantCli(): string[] {
     return ["uv", "run", "--project", localProject, "tonquant-quant-cli"];
   }
 
+  const bundledBackend = join(process.cwd(), "quant-backend", "cli.ts");
+  if (existsSync(bundledBackend)) {
+    return ["bun", "run", bundledBackend];
+  }
+
   throw new CliCommandError(
     "Quant backend is not configured. Set TONQUANT_QUANT_CLI or TONQUANT_QUANT_PYTHON_PROJECT.",
     "QUANT_BACKEND_NOT_CONFIGURED",

@@ -1,5 +1,3 @@
-import type { SpawnOptions } from "bun";
-
 export type QuantReadableStreamLike = ReadableStream<Uint8Array> | NodeJS.ReadableStream;
 export type QuantWritableSink = NodeJS.WritableStream;
 
@@ -11,9 +9,36 @@ export interface QuantSpawnedProcess {
   kill(signal?: string): void;
 }
 
-export type QuantSpawnOptions = SpawnOptions.OptionsObject<"pipe", "pipe", "pipe">;
+export interface QuantSpawnOptions {
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  stdin: "pipe";
+  stdout: "pipe";
+  stderr: "pipe";
+}
+
 export type QuantSpawnImpl = (cmd: string[], options: QuantSpawnOptions) => QuantSpawnedProcess;
 
+function adaptBunProcess(proc: ReturnType<typeof Bun.spawn>): QuantSpawnedProcess {
+  return {
+    get stdin() {
+      return proc.stdin as unknown as QuantWritableSink | undefined;
+    },
+    get stdout() {
+      return proc.stdout as QuantReadableStreamLike | undefined;
+    },
+    get stderr() {
+      return proc.stderr as QuantReadableStreamLike | undefined;
+    },
+    get exited() {
+      return proc.exited;
+    },
+    kill(signal?: string) {
+      proc.kill(signal === "SIGTERM" ? 15 : undefined);
+    },
+  };
+}
+
 export function resolveQuantSpawnImpl(): QuantSpawnImpl {
-  return (cmd, options) => Bun.spawn(cmd, options) as unknown as QuantSpawnedProcess;
+  return (cmd, options) => adaptBunProcess(Bun.spawn(cmd, options));
 }

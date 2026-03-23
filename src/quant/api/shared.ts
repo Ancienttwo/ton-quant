@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   createQuantArtifactDir,
   listArtifacts,
@@ -44,7 +45,7 @@ export function createRunContext(
   domain: QuantArtifactDomain,
   outputDir?: string,
 ): { artifactDir: string; runId: string } {
-  const runId = crypto.randomUUID();
+  const runId = randomUUID();
   const artifactDir = createQuantArtifactDir(domain, runId, outputDir);
   return { artifactDir, runId };
 }
@@ -77,7 +78,17 @@ export async function invokeQuantCli<T>(
       spawnImpl: options?.spawnImpl,
     } satisfies RunQuantCliOptions);
     writeArtifactText(artifactDir, "run.log", result.stderr);
-    const parsed = parseResult(JSON.parse(result.stdout));
+    let rawJson: unknown;
+    try {
+      rawJson = JSON.parse(result.stdout);
+    } catch {
+      const preview = result.stdout.slice(0, 200);
+      throw new QuantCliError(`Quant CLI returned invalid JSON. stdout preview: ${preview}`, {
+        command: subcommand,
+        stderr: result.stderr,
+      });
+    }
+    const parsed = parseResult(rawJson);
     const artifacts = mergeArtifacts(artifactDir, parsed.artifacts);
     const finalResult = {
       ...parsed,
