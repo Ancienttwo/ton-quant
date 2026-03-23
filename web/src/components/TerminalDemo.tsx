@@ -7,38 +7,51 @@ interface TermLine {
 }
 
 const DEMO_LINES: TermLine[] = [
+  // Scene 1: Price check (~4s)
   { text: '$ tonquant price TON', type: 'prompt', delay: 0 },
-  { text: '  TON (TON)', type: 'header', delay: 800 },
-  { text: '    Price:     $1.30', type: 'data', delay: 1000 },
-  { text: '    Volume:    $1,644,061', type: 'data', delay: 1100 },
-  { text: '', type: 'dim', delay: 1400 },
-  { text: '$ tonquant autoresearch run --asset TON/USDT --factors rsi,macd,volatility', type: 'prompt', delay: 1800 },
-  { text: '', type: 'dim', delay: 2400 },
-  { text: '  Autoresearch', type: 'header', delay: 2600 },
-  { text: '  ────────────────────────────────────────────────', type: 'divider', delay: 2700 },
-  { text: '  Status: SUCCESS', type: 'success', delay: 2900 },
-  { text: '', type: 'dim', delay: 3000 },
-  { text: '  \u2713 data fetch      90 bars for TON/USDT', type: 'success', delay: 3300 },
-  { text: '  \u2713 factor compute  3 factors computed', type: 'success', delay: 3900 },
-  { text: '  \u2713 backtest        +12.35% return, sharpe 1.84', type: 'success', delay: 4600 },
-  { text: '  \u2713 report          Report generated', type: 'success', delay: 5200 },
-  { text: '', type: 'dim', delay: 5400 },
-  { text: '  ────────────────────────────────────────────────', type: 'divider', delay: 5500 },
-  { text: '  Metric           Value', type: 'dim', delay: 5700 },
-  { text: '  ─────────────    ──────', type: 'divider', delay: 5750 },
-  { text: '  Recommendation   BUY', type: 'recommendation', delay: 6000 },
-  { text: '  Sharpe Ratio     1.8402', type: 'metric', delay: 6300 },
-  { text: '  Total Return     +12.35%', type: 'metric', delay: 6500 },
-  { text: '  Max Drawdown     4.12%', type: 'data', delay: 6700 },
-  { text: '  Win Rate         66.7%', type: 'data', delay: 6900 },
-  { text: '  Trades           3', type: 'data', delay: 7000 },
-  { text: '', type: 'dim', delay: 7200 },
-  { text: '  Factors:', type: 'header', delay: 7400 },
-  { text: '    rsi:        58.42', type: 'data', delay: 7600 },
-  { text: '    macd:       0.052341', type: 'data', delay: 7750 },
-  { text: '    volatility: 27.24%', type: 'data', delay: 7900 },
-  { text: '', type: 'dim', delay: 8100 },
-  { text: '  Report: ~/.tonquant/quant/autoresearch/report.md', type: 'info', delay: 8300 },
+  { text: '  TON (TON)', type: 'header', delay: 1800 },
+  { text: '    Price:     $1.30', type: 'data', delay: 2100 },
+  { text: '    Volume:    $1,644,061', type: 'data', delay: 2300 },
+  { text: '', type: 'dim', delay: 3500 },
+
+  // Scene 2: Autoresearch command (~2s typing)
+  { text: '$ tonquant autoresearch run --asset TON/USDT --factors rsi,macd,volatility', type: 'prompt', delay: 4500 },
+  { text: '', type: 'dim', delay: 6500 },
+
+  // Scene 3: Pipeline header (~1s)
+  { text: '  Autoresearch', type: 'header', delay: 7000 },
+  { text: '  ────────────────────────────────────────────────', type: 'divider', delay: 7200 },
+  { text: '  Status: SUCCESS', type: 'success', delay: 7800 },
+  { text: '', type: 'dim', delay: 8200 },
+
+  // Scene 4: Pipeline steps — each step takes ~1.5s (simulates real computation)
+  { text: '  \u2713 data fetch      90 bars for TON/USDT', type: 'success', delay: 9000 },
+  { text: '  \u2713 factor compute  3 factors computed', type: 'success', delay: 10800 },
+  { text: '  \u2713 backtest        +12.35% return, sharpe 1.84', type: 'success', delay: 12500 },
+  { text: '  \u2713 report          Report generated', type: 'success', delay: 14000 },
+  { text: '', type: 'dim', delay: 14800 },
+
+  // Scene 5: Metrics table (~4s)
+  { text: '  ────────────────────────────────────────────────', type: 'divider', delay: 15200 },
+  { text: '  Metric           Value', type: 'dim', delay: 15600 },
+  { text: '  ─────────────    ──────', type: 'divider', delay: 15800 },
+  { text: '  Recommendation   BUY', type: 'recommendation', delay: 16500 },
+  { text: '  Sharpe Ratio     1.8402', type: 'metric', delay: 17200 },
+  { text: '  Total Return     +12.35%', type: 'metric', delay: 17800 },
+  { text: '  Max Drawdown     4.12%', type: 'data', delay: 18300 },
+  { text: '  Win Rate         66.7%', type: 'data', delay: 18700 },
+  { text: '  Trades           3', type: 'data', delay: 19000 },
+  { text: '', type: 'dim', delay: 19500 },
+
+  // Scene 6: Factor summary (~2s)
+  { text: '  Factors:', type: 'header', delay: 20000 },
+  { text: '    rsi:        58.42', type: 'data', delay: 20500 },
+  { text: '    macd:       0.052341', type: 'data', delay: 20900 },
+  { text: '    volatility: 27.24%', type: 'data', delay: 21300 },
+  { text: '', type: 'dim', delay: 22000 },
+
+  // Scene 7: Report path
+  { text: '  Report: ~/.tonquant/quant/autoresearch/report.md', type: 'info', delay: 22500 },
 ]
 
 const TYPE_COLORS: Record<string, string> = {
