@@ -1,4 +1,5 @@
 import { loadConfig } from "../config/index.js";
+import { ServiceError } from "../errors.js";
 import type {
   BalanceData,
   HistoryData,
@@ -7,8 +8,7 @@ import type {
   ResearchData,
   SwapSimulationData,
   TrendingData,
-} from "../types/cli.js";
-import { CliCommandError } from "../utils/output.js";
+} from "../types/data.js";
 import { calcUsdValue, fromRawUnits, toRawUnits } from "../utils/units.js";
 import {
   buildPriceIndex,
@@ -25,7 +25,10 @@ const TON_DECIMALS = 9;
 /**
  * Fetch enriched price data for a token symbol.
  */
-function aggregateVolume(pools: Awaited<ReturnType<typeof cachedGetPools>>, address: string): string {
+function aggregateVolume(
+  pools: Awaited<ReturnType<typeof cachedGetPools>>,
+  address: string,
+): string {
   let total = 0;
   for (const pool of pools) {
     if (pool.token0_address === address || pool.token1_address === address) {
@@ -38,7 +41,7 @@ function aggregateVolume(pools: Awaited<ReturnType<typeof cachedGetPools>>, addr
 export async function fetchPriceData(symbol: string): Promise<PriceData> {
   const asset = await cachedFindAssetBySymbol(symbol);
   if (!asset) {
-    throw new CliCommandError(`Token "${symbol}" not found`, "TOKEN_NOT_FOUND");
+    throw new ServiceError(`Token "${symbol}" not found`, "TOKEN_NOT_FOUND");
   }
 
   const pools = await cachedGetPools();
@@ -66,10 +69,10 @@ export async function fetchPoolData(symbolA: string, symbolB: string): Promise<P
   const assetB = assets.find((a) => a.symbol.toUpperCase() === upperB);
 
   if (!assetA) {
-    throw new CliCommandError(`Token "${symbolA}" not found`, "TOKEN_NOT_FOUND");
+    throw new ServiceError(`Token "${symbolA}" not found`, "TOKEN_NOT_FOUND");
   }
   if (!assetB) {
-    throw new CliCommandError(`Token "${symbolB}" not found`, "TOKEN_NOT_FOUND");
+    throw new ServiceError(`Token "${symbolB}" not found`, "TOKEN_NOT_FOUND");
   }
 
   const pools = await cachedGetPools();
@@ -81,7 +84,7 @@ export async function fetchPoolData(symbolA: string, symbolB: string): Promise<P
         p.token1_address === assetA.contract_address),
   );
   if (!pool) {
-    throw new CliCommandError(`No pool found for ${symbolA}/${symbolB}`, "POOL_NOT_FOUND");
+    throw new ServiceError(`No pool found for ${symbolA}/${symbolB}`, "POOL_NOT_FOUND");
   }
 
   const priceIndex = buildPriceIndex(assets);
@@ -203,10 +206,10 @@ export async function fetchSwapSimulation(
   const toAsset = await cachedFindAssetBySymbol(to);
 
   if (!fromAsset) {
-    throw new CliCommandError(`Token "${from}" not found`, "TOKEN_NOT_FOUND");
+    throw new ServiceError(`Token "${from}" not found`, "TOKEN_NOT_FOUND");
   }
   if (!toAsset) {
-    throw new CliCommandError(`Token "${to}" not found`, "TOKEN_NOT_FOUND");
+    throw new ServiceError(`Token "${to}" not found`, "TOKEN_NOT_FOUND");
   }
 
   const slippage = (Number.parseFloat(slippagePct) / 100).toString();

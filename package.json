@@ -1,53 +1,18 @@
 {
-  "name": "tonquant",
-  "version": "0.1.0",
-  "description": "AI-native quant research CLI for the TON blockchain — data, factors, backtesting, and automated research loops",
-  "type": "module",
-  "bin": {
-    "tonquant": "./src/index.ts"
-  },
-  "files": [
-    "src/",
-    "quant-backend/",
-    "README.md",
-    "DESIGN.md",
-    "skill/"
+  "name": "tonquant-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
   ],
-  "keywords": [
-    "ton",
-    "defi",
-    "quant",
-    "trading",
-    "cli",
-    "ai-agent",
-    "backtest",
-    "stonfi",
-    "blockchain"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Ancienttwo/ton-quant"
-  },
-  "homepage": "https://tonquant.com",
-  "license": "MIT",
-  "author": "ancienttwo",
   "scripts": {
-    "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
-    "typecheck": "tsc --noEmit",
+    "dev": "bun run --filter tonquant dev",
+    "build": "bun run --filter tonquant build",
+    "typecheck": "tsc -b packages/core/tsconfig.json apps/cli/tsconfig.json",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "bun test",
     "test:coverage": "bun test --coverage"
-  },
-  "dependencies": {
-    "@ton/core": "latest",
-    "@ton/crypto": "latest",
-    "@ton/ton": "latest",
-    "chalk": "latest",
-    "cli-table3": "latest",
-    "commander": "^13",
-    "zod": "^3.24"
   },
   "devDependencies": {
     "@biomejs/biome": "latest",

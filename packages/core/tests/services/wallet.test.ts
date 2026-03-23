@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { ServiceError } from "../../src/errors.js";
 import { getWalletAddress } from "../../src/services/wallet.js";
 import type { Config } from "../../src/types/config.js";
-import { CliCommandError } from "../../src/utils/output.js";
 
 describe("wallet service", () => {
   test("getWalletAddress returns address from config", () => {
@@ -31,7 +31,7 @@ describe("wallet service", () => {
         currency: "usd",
       },
     };
-    expect(() => getWalletAddress(config)).toThrow(CliCommandError);
+    expect(() => getWalletAddress(config)).toThrow(ServiceError);
   });
 
   test("getWalletAddress error has correct code", () => {
@@ -46,8 +46,8 @@ describe("wallet service", () => {
     try {
       getWalletAddress(config);
     } catch (e) {
-      expect(e).toBeInstanceOf(CliCommandError);
-      expect((e as CliCommandError).code).toBe("WALLET_NOT_CONFIGURED");
+      expect(e).toBeInstanceOf(ServiceError);
+      expect((e as ServiceError).code).toBe("WALLET_NOT_CONFIGURED");
     }
   });
 });

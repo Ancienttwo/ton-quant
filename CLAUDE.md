@@ -40,26 +40,29 @@ Load these only when needed:
 
 ---
 
-## Project Structure
+## Project Structure (Monorepo)
 
 ```
 tonquant/
-├── src/
-│   ├── index.ts              # Entry point — CLI setup with Commander
-│   ├── cli/                  # Command definitions (one file per command)
-│   │   ├── price.ts          # P0: token price query
-│   │   ├── pools.ts          # P0: liquidity pool details
-│   │   ├── trending.ts       # P0: trending tokens
-│   │   ├── init.ts           # P0: wallet configuration
-│   │   ├── balance.ts        # P0: wallet balance
-│   │   ├── swap.ts           # P0: swap simulation / P1: execution
-│   │   ├── research.ts       # P1: comprehensive research
-│   │   └── history.ts        # P1: transaction history
-│   ├── services/             # API clients (STON.fi, TonAPI, wallet)
-│   ├── types/                # Zod schemas + TypeScript types
-│   ├── config/               # Configuration management
-│   └── utils/                # Output formatting, color helpers
-├── tests/                    # Mirrors src/ structure
+├── packages/
+│   └── core/                 # @tonquant/core — shared types, services, config
+│       └── src/
+│           ├── index.ts      # Barrel export
+│           ├── errors.ts     # ServiceError (framework-agnostic)
+│           ├── types/        # Zod schemas (api.ts, config.ts, data.ts)
+│           ├── services/     # API clients (stonfi, tonapi, wallet, cache, queries)
+│           ├── config/       # Configuration management
+│           └── utils/        # units.ts, crypto.ts
+├── apps/
+│   ├── cli/                  # tonquant — npm published CLI
+│   │   └── src/
+│   │       ├── index.ts      # Entry point — Commander setup
+│   │       ├── cli/          # Command definitions (one file per command)
+│   │       ├── quant/        # Quant research (orchestrator, runner, api)
+│   │       ├── types/cli.ts  # CLI envelope schemas
+│   │       └── utils/        # output.ts, format.ts, format-quant.ts
+│   ├── web/                  # @tonquant/web — React landing page
+│   └── quant-backend/        # @tonquant/quant-backend — backend handlers
 ├── tasks/                    # AI workflow contract
 ├── plans/                    # Timestamped implementation plans
 └── docs/                     # Architecture, decisions, PRD

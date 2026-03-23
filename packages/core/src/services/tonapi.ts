@@ -1,7 +1,7 @@
 import { z } from "zod";
+import { ServiceError } from "../errors.js";
 import type { JettonBalance, TonBalance, TransactionEvent } from "../types/api.js";
 import { JettonBalanceSchema, TonBalanceSchema, TransactionEventSchema } from "../types/api.js";
-import { CliCommandError } from "../utils/output.js";
 
 const BASE_URL = "https://tonapi.io/v2";
 
@@ -13,7 +13,7 @@ async function tonapiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new CliCommandError(
+    throw new ServiceError(
       `TonAPI error: ${response.status} ${response.statusText}`,
       "TONAPI_ERROR",
     );

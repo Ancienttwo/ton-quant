@@ -32,11 +32,11 @@ const frames: [number, string, string][] = [];
 let time = 0;
 
 // Section timing rules
-const SECTION_PAUSE = 1.5;      // pause before section header
-const LINE_DELAY = 0.04;        // base delay per line
-const CMD_DELAY = 0.8;          // pause after $ command line
-const TABLE_LINE_DELAY = 0.02;  // faster for table rendering
-const RESULT_PAUSE = 2.0;       // pause on important results
+const SECTION_PAUSE = 1.5; // pause before section header
+const LINE_DELAY = 0.04; // base delay per line
+const CMD_DELAY = 0.8; // pause after $ command line
+const TABLE_LINE_DELAY = 0.02; // faster for table rendering
+const RESULT_PAUSE = 2.0; // pause on important results
 const TYPING_CHAR_DELAY = 0.03; // typing simulation
 
 for (let i = 0; i < lines.length; i++) {
@@ -47,9 +47,14 @@ for (let i = 0; i < lines.length; i++) {
   const isSection = line.includes("━━━") && line.includes("\x1b[1;36m");
   const isBoxLine = line.includes("╔") || line.includes("╚") || line.includes("║");
   const isPrompt = line.includes("\x1b[1;33m$\x1b[0m");
-  const isTableLine = line.includes("┌") || line.includes("├") || line.includes("└") || line.includes("│");
+  const isTableLine =
+    line.includes("┌") || line.includes("├") || line.includes("└") || line.includes("│");
   const isSuccess = line.includes("✓");
-  const isRecommendation = line.includes("Recommendation") || line.includes("BUY") || line.includes("SELL") || line.includes("HOLD");
+  const isRecommendation =
+    line.includes("Recommendation") ||
+    line.includes("BUY") ||
+    line.includes("SELL") ||
+    line.includes("HOLD");
 
   // Add appropriate delay
   if (isSection) {

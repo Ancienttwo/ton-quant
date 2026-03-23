@@ -1,0 +1,50 @@
+{
+  "name": "tonquant",
+  "version": "0.1.0",
+  "description": "AI-native quant research CLI for the TON blockchain",
+  "type": "module",
+  "bin": {
+    "tonquant": "./src/index.ts"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "keywords": [
+    "ton",
+    "defi",
+    "quant",
+    "trading",
+    "cli",
+    "ai-agent",
+    "backtest",
+    "stonfi",
+    "blockchain"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ancienttwo/ton-quant"
+  },
+  "homepage": "https://tonquant.com",
+  "license": "MIT",
+  "author": "ancienttwo",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "test": "bun test tests/",
+    "test:coverage": "bun test --coverage tests/"
+  },
+  "dependencies": {
+    "@tonquant/core": "workspace:*",
+    "chalk": "latest",
+    "cli-table3": "latest",
+    "commander": "^13",
+    "zod": "^3.24"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

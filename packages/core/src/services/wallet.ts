@@ -1,7 +1,7 @@
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { WalletContractV5R1 } from "@ton/ton";
+import { ServiceError } from "../errors.js";
 import type { Config } from "../types/config.js";
-import { CliCommandError } from "../utils/output.js";
 
 export interface WalletInfo {
   readonly address: string;
@@ -23,7 +23,7 @@ export async function createWalletFromMnemonic(mnemonic: string[]): Promise<Wall
       publicKey: keyPair.publicKey.toString("hex"),
     };
   } catch (err) {
-    throw new CliCommandError(
+    throw new ServiceError(
       `Failed to derive wallet: ${err instanceof Error ? err.message : String(err)}`,
       "WALLET_DERIVATION_ERROR",
     );
@@ -35,7 +35,7 @@ export async function createWalletFromMnemonic(mnemonic: string[]): Promise<Wall
  */
 export function getWalletAddress(config: Config): string {
   if (!config.wallet) {
-    throw new CliCommandError(
+    throw new ServiceError(
       "Wallet not configured. Run `tonquant init` first.",
       "WALLET_NOT_CONFIGURED",
     );

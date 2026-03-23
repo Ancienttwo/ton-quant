@@ -1,7 +1,7 @@
 import { z } from "zod";
+import { ServiceError } from "../errors.js";
 import type { Asset, Pool, SwapSimulateParams, SwapSimulateResponse } from "../types/api.js";
 import { AssetSchema, PoolSchema, SwapSimulateResponseSchema } from "../types/api.js";
-import { CliCommandError } from "../utils/output.js";
 
 const BASE_URL = "https://api.ston.fi/v1";
 
@@ -13,7 +13,7 @@ async function stonfiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new CliCommandError(
+    throw new ServiceError(
       `STON.fi API error: ${response.status} ${response.statusText}`,
       "STONFI_API_ERROR",
     );
@@ -75,7 +75,7 @@ export async function simulateSwap(params: SwapSimulateParams): Promise<SwapSimu
   });
 
   if (!response.ok) {
-    throw new CliCommandError(
+    throw new ServiceError(
       `STON.fi swap simulate error: ${response.status} ${response.statusText}`,
       "STONFI_SWAP_ERROR",
     );

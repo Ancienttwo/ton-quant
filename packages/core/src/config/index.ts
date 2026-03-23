@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { ServiceError } from "../errors.js";
 import type { Config } from "../types/config.js";
 import { CONFIG_DIR, CONFIG_FILE, ConfigSchema } from "../types/config.js";
-import { CliCommandError } from "../utils/output.js";
 
 /**
  * Ensure the config directory exists.
@@ -27,7 +27,7 @@ export async function loadConfig(): Promise<Config> {
     const parsed = JSON.parse(raw);
     return ConfigSchema.parse(parsed);
   } catch (err) {
-    throw new CliCommandError(
+    throw new ServiceError(
       `Failed to load config from ${CONFIG_FILE}: ${err instanceof Error ? err.message : String(err)}`,
       "CONFIG_LOAD_ERROR",
     );
