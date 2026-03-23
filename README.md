@@ -20,13 +20,8 @@ A command-line tool that lets AI Agents (like OpenClaw) and developers perform q
 ## Quick Start
 
 ```bash
-# Install Bun (if not already installed)
-curl -fsSL https://bun.sh/install | bash
-
-# Clone and install
-git clone <repo-url> && cd tonquant
-bun install
-bun link
+# Install (requires Bun — https://bun.sh)
+bun install -g tonquant
 
 # Try it out
 tonquant trending --limit 5

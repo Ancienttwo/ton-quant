@@ -146,14 +146,8 @@ function App() {
                 <h3>Install</h3>
                 <div className="step-code">
                   <code>
-                    <span className="code-comment"># Requires Bun runtime</span>
-                    {'\n'}curl -fsSL https://bun.sh/install | bash
-                    {'\n'}
-                    {'\n'}<span className="code-comment"># Clone and install TonQuant</span>
-                    {'\n'}git clone https://github.com/Ancienttwo/ton-quant.git
-                    {'\n'}cd ton-quant
-                    {'\n'}bun install
-                    {'\n'}bun link
+                    <span className="code-comment"># Requires Bun runtime (https://bun.sh)</span>
+                    {'\n'}bun install -g tonquant
                   </code>
                 </div>
               </div>
@@ -233,7 +227,7 @@ function App() {
         <div className="cta-inner">
           <h2>Start researching TON in 30 seconds</h2>
           <div className="cta-cmd">
-            <code>bun install &amp;&amp; bun link &amp;&amp; tonquant autoresearch run --asset TON/USDT</code>
+            <code>bun install -g tonquant &amp;&amp; tonquant autoresearch run --asset TON/USDT</code>
           </div>
           <a href="https://github.com/Ancienttwo/ton-quant" target="_blank" rel="noreferrer" className="btn btn-primary btn-lg">
             Get Started
