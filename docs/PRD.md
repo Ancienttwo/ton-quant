@@ -270,7 +270,46 @@ tonquant autoresearch status --track trk_not_momo --json
 - dashboard/UI
 - multi-DEX aggregation
 
-## 9. Acceptance Criteria
+## 9. Agent Ecosystem — 推荐搭配的 MCP Skills
+
+TonQuant 是 Agent 调用的 CLI 工具，不内置 AI。驱动它的 Agent (OpenClaw) 侧应搭配以下 MCP skill 以增强决策质量：
+
+### 9.1 opennews-mcp — **推荐**
+
+```bash
+npx skills add https://github.com/6551Team/opennews-mcp --skill opennews
+```
+
+| 属性 | 值 |
+|------|-----|
+| 来源 | 72+ 加密新闻源 (Bloomberg, Reuters, CoinDesk, The Block...) |
+| 能力 | AI 评分 (0-100)、交易信号 (bullish/bearish)、链上鲸鱼动态、实时 WebSocket |
+| 需要 | `OPENNEWS_TOKEN` (从 https://6551.io/mcp 获取) |
+
+**与 TonQuant 的协同场景:**
+
+| 场景 | Agent 工作流 |
+|------|-------------|
+| 策略表现归因 | `autoresearch status` → 发现回撤 → `opennews search_news_by_coin NOT` → 关联 FUD 新闻 → 判断是市场事件非策略失效 |
+| 回测结果解读 | `backtest run` → sharpe 偏低 → 查新闻发现回测区间有黑天鹅事件 → 调整回测窗口 |
+| 交易前确认 | `swap` 前 → `opennews get_high_score_news` → 无重大利空 → 执行 |
+
+### 9.2 daily-news — **不需要**
+
+与 opennews-mcp 数据源重叠（同为 6551 API），功能是其子集，跳过。
+
+### 9.3 SKILL.md 中的协同说明
+
+TonQuant 的 OpenClaw SKILL.md 应包含：
+
+```markdown
+## Recommended companion skills
+- **opennews**: Use `search_news_by_coin` to contextualize strategy performance.
+  Before promoting autoresearch candidates, check recent news for the traded token.
+  Before executing swaps, verify no high-impact negative news (aiRating > 80, signal = bearish).
+```
+
+## 10. Acceptance Criteria
 
 - Repo docs consistently describe a two-stage product
 - `src/quant/` exists and exports the Phase 1 contract surface
@@ -279,3 +318,4 @@ tonquant autoresearch status --track trk_not_momo --json
   - `data fetch -> factor compute -> backtest run`
   - `autoresearch init -> run -> status`
 - Existing support commands remain available without being forced into quant-run artifact semantics
+- SKILL.md 包含 opennews 协同说明
