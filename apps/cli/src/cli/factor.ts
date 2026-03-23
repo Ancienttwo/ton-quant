@@ -2,10 +2,12 @@ import type { Command } from "commander";
 import { runFactorCompute, runFactorList } from "../quant/api/factor.js";
 import { formatFactorCompute, formatFactorList } from "../utils/format-quant.js";
 import { handleCommand } from "../utils/output.js";
+import { registerFactorMarketplaceCommands } from "./factor-core.js";
 
 export function registerFactorCommand(program: Command): void {
-  const command = program.command("factor").description("Factor computation [Phase 1]");
+  const command = program.command("factor").description("Factor computation & marketplace");
 
+  // Quant boundary commands (Phase 1)
   command
     .command("list")
     .description("List available quant factors")
@@ -31,4 +33,7 @@ export function registerFactorCommand(program: Command): void {
         formatFactorCompute,
       );
     });
+
+  // Marketplace commands (publish, discover, subscribe, top, etc.)
+  registerFactorMarketplaceCommands(command);
 }

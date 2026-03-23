@@ -77,3 +77,39 @@ export {
 export { decrypt, encrypt, loadOrCreateKey } from "./utils/crypto.js";
 // Utils
 export { calcUsdValue, fromRawUnits, toRawUnits } from "./utils/units.js";
+// Factor Registry Types
+export type {
+  FactorMetaPublic,
+  FactorMetaPrivate,
+  FactorRegistryEntry,
+  FactorRegistryIndex,
+  FactorSubscription,
+  FactorPerformanceReport,
+  FactorAlert,
+  FactorCategory,
+} from "./types/factor-registry.js";
+export {
+  FactorMetaPublicSchema,
+  FactorMetaPrivateSchema,
+  FactorRegistryEntrySchema,
+  FactorRegistryIndexSchema,
+  FactorCategorySchema,
+  FactorIdSchema,
+  FactorBacktestSummarySchema,
+  FactorSubscriptionSchema,
+  FactorPerformanceReportSchema,
+  FactorAlertSchema,
+} from "./types/factor-registry.js";
+// Factor Registry Service
+export {
+  publishFactor,
+  discoverFactors,
+  subscribeFactor,
+  unsubscribeFactor,
+  listFactors,
+  getFactorDetail,
+  getFactorLeaderboard,
+  DuplicateFactorError,
+  FactorNotFoundError,
+  BacktestValidationError,
+} from "./services/registry.js";

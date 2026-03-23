@@ -1,33 +1,41 @@
-# TonQuant PRD v3 — TON Quant Research CLI
+# TonQuant PRD v4 — TON Factor Marketplace
 
 ## 1. Overview
 
 ### 1.1 Product
 
-**TonQuant** is an AI-agent-facing CLI for TON quant research.
+**TonQuant** is an agent-native factor marketplace for TON, built as a CLI-first platform.
 
-It deliberately ships in two stages:
+It ships in three stages:
 
 - **Phase 0**: lightweight TON DeFi support commands for market inspection and wallet workflows
 - **Phase 1**: quant-first workflows for data fetch, factor computation, backtesting, presets, and autoresearch
+- **Phase 2**: factor marketplace — registry, leaderboard, composition, backtest verification, alerts, and social proof
 
 ### 1.2 One-line Description
 
-TonQuant gives AI agents a stable TON quant workflow surface so they can fetch datasets, compute factors, run backtests, and iterate strategies while still having direct wallet and market utilities available.
+TonQuant is “npm for trading factors” — an open protocol where AI Agents discover, compose, validate, and publish quantitative factors for TON markets.
 
 ### 1.3 Product Thesis
 
-The repo should not stop at “price and swap tooling.” The differentiator is an agent-friendly quant boundary for TON:
+The repo should not stop at “quant research tooling.” The differentiator is an **agent-native factor marketplace** — the missing infrastructure layer between raw market data and tradeable strategies:
 
 - typed request/result contracts
 - durable artifacts and state
 - predictable command groups
 - a backend-agnostic runner interface
+- **open factor registry** that any AI Agent framework can natively consume
+- **factor economics**: factors decay slower than strategies, are composable, and form a natural marketplace unit
 
-### 1.4 Users
+### 1.4 Vision
+
+User says “find me alpha in TON” → AI Agent searches registry → finds top factors → composes into strategy → backtests → presents results. Other agents validate with real trading. Factor creators earn passive income. New factors auto-generated from market anomalies. The entire system is self-improving.
+
+### 1.5 Users
 
 - **Primary**: AI agents consuming `--json`
 - **Secondary**: developers and researchers using the CLI directly
+- **Phase 2**: AI Agent developers (integrating factors), factor creators (publishing and monetizing)
 
 ## 2. Product Shape
 
@@ -70,6 +78,56 @@ Phase 1.5 or later:
 - richer factor library
 - eventual `swap --execute`
 
+## 2.3 Phase 2 — Factor Marketplace
+
+The main product direction post-hackathon. Transforms TonQuant from a research CLI into an agent-native factor marketplace.
+
+### Factor Registry Core
+
+- `tonquant factor publish` — publish a factor definition to the registry
+- `tonquant factor discover` — search/browse available factors
+- `tonquant factor subscribe` — subscribe to factor updates
+- `tonquant factor update` — update an existing published factor
+- `tonquant factor list` — list all factors (extends existing Phase 1 command)
+
+### Factor Leaderboard
+
+- `tonquant factor top` — period-based ranking of factors by performance
+- Supports `--period 7d|30d|90d|all` for different time windows
+- Ranking by sharpe, returns, consistency, or composite score
+
+### Factor Composition (Factor Algebra)
+
+- `tonquant factor compose` — combine multiple factors with weights
+- Weighted linear combination: `0.4 * momentum + 0.3 * value + 0.3 * sentiment`
+- Composed factors become first-class registry entries
+- Enables "strategy as factor composition" pattern
+
+### One-Click Backtest
+
+- `tonquant factor backtest` — integrated with existing backtest infrastructure
+- Runs backtest directly from a factor ID or composed factor
+- Returns standard backtest metrics (sharpe, max drawdown, returns)
+
+### Factor Alerts
+
+- `tonquant factor alert set` — set threshold notifications on factor values
+- `tonquant factor alert list` — list active alerts
+- `tonquant factor alert remove` — remove an alert
+- Requires cron/daemon for background monitoring
+
+### Social Proof Layer
+
+- `tonquant factor report` — agents submit real trading performance data
+- Aggregated performance data feeds back into leaderboard rankings
+- Distinguishes backtest performance from live performance
+
+### OpenClaw Skill Packaging
+
+- Top factors packaged as consumable OpenClaw skills
+- Auto-generated skill definitions from factor metadata
+- Enables zero-config factor consumption by any OpenClaw-compatible agent
+
 ## 3. Architecture Direction
 
 ## 3.1 Support Command Surface
@@ -100,7 +158,23 @@ This surface is designed to be compatible with the `comp-agent` quant boundary w
 - artifact ownership
 - autoresearch state model
 
-## 3.3 Optional Backend
+## 3.3 Factor Registry Surface
+
+Factor marketplace commands are owned by `packages/core/src/services/registry.ts` and `packages/core/src/types/factor-registry.ts`:
+
+```text
+packages/core/src/
+  types/factor-registry.ts  -> FactorDefinition, RegistryEntry, LeaderboardEntry schemas
+  services/registry.ts      -> FactorRegistry service (local JSON → remote API)
+
+apps/cli/src/cli/
+  factor.ts                 -> factor command group (publish, discover, subscribe, top, compose, backtest, alert, report)
+  factor-core.ts            -> factor core logic shared between commands
+```
+
+Phase 2 registry is **local-first** (JSON file at `~/.tonquant/registry/`), with remote API deferred to Phase 3.
+
+## 3.4 Optional Backend
 
 The first execution backend is planned, not shipped in this pass. The runner assumes a future backend such as a Python CLI exposed over JSON-over-stdio.
 
@@ -195,6 +269,19 @@ Every quant run result includes:
 - `QuantAutoresearchTrackSummary`
 - init/run/status/list/promote/reject request contracts
 
+### Factor Registry (Phase 2)
+
+- `FactorDefinition` — factor metadata, formula, parameters, author
+- `RegistryEntry` — published factor with version, timestamps, stats
+- `FactorPublishRequest / FactorPublishResult`
+- `FactorDiscoverRequest / FactorDiscoverResult`
+- `FactorSubscribeRequest / FactorSubscribeResult`
+- `FactorTopRequest / FactorTopResult` (leaderboard)
+- `FactorComposeRequest / FactorComposeResult` (algebra)
+- `FactorBacktestRequest / FactorBacktestResult`
+- `FactorAlertRequest / FactorAlertResult`
+- `FactorReportRequest / FactorReportResult` (social proof)
+
 ## 5.3 Runner APIs
 
 The stable TypeScript runner boundary includes:
@@ -247,14 +334,14 @@ tonquant autoresearch status --track trk_not_momo --json
 
 ## 8. Priority
 
-## 8.1 Current pass
+## 8.1 Phase 1 (Hackathon — due 2026-03-25)
 
 1. repo-local replan and workflow alignment
 2. `src/quant/` type/api/runner boundary
 3. Phase 1 command-group contract on the CLI surface
 4. docs updated to describe the same product
 
-## 8.2 Next implementation phase
+## 8.2 Phase 1.5 (Post-hackathon quant infra)
 
 1. dataset contract and `data fetch`
 2. factor implementations
@@ -262,13 +349,34 @@ tonquant autoresearch status --track trk_not_momo --json
 4. preset loading
 5. autoresearch state machine
 
-## 8.3 Deferred
+## 8.3 Phase 2 (Factor Marketplace)
 
-- signal evaluation implementation
-- promote/reject implementation
-- swap execution
-- dashboard/UI
-- multi-DEX aggregation
+Implementation order per CEO review:
+
+1. Factor registry types (`packages/core/src/types/factor-registry.ts`)
+2. Registry service (`packages/core/src/services/registry.ts`)
+3. CLI factor commands (`apps/cli/src/cli/factor.ts`)
+4. Factor Leaderboard (`factor top`)
+5. One-Click Backtest (`factor backtest`)
+6. Factor Composition (`factor compose`)
+7. Factor Alerts (`factor alert`)
+8. Social Proof (`factor report`)
+9. Seed content — built-in starter factors
+10. OpenClaw skill packaging for top factors
+
+## 8.4 Deferred (Phase 3+)
+
+- Factor Similarity Search
+- Factor of the Day auto-recommendation
+- Web UI / full marketplace platform
+- Payment infrastructure and revenue split
+- Multi-asset support (US stocks, ETH)
+- Author identity/authentication system
+- Remote registry API (local JSON first)
+- Signal evaluation implementation
+- Promote/reject implementation
+- Swap execution
+- Multi-DEX aggregation
 
 ## 9. Agent Ecosystem — 推荐搭配的 MCP Skills
 
@@ -311,7 +419,9 @@ TonQuant 的 OpenClaw SKILL.md 应包含：
 
 ## 10. Acceptance Criteria
 
-- Repo docs consistently describe a two-stage product
+### Phase 1
+
+- Repo docs consistently describe a three-stage product
 - `src/quant/` exists and exports the Phase 1 contract surface
 - CLI help exposes the Phase 1 command groups
 - Agent-facing success can be expressed as:
@@ -319,3 +429,14 @@ TonQuant 的 OpenClaw SKILL.md 应包含：
   - `autoresearch init -> run -> status`
 - Existing support commands remain available without being forced into quant-run artifact semantics
 - SKILL.md 包含 opennews 协同说明
+
+### Phase 2 (Factor Marketplace)
+
+- Factor registry supports publish / discover / subscribe / update / list
+- `factor top` displays factor leaderboard with period-based ranking
+- `factor compose` supports weighted factor algebra producing first-class registry entries
+- `factor backtest` runs one-click backtest from factor ID
+- `factor alert` supports threshold notifications with background monitoring
+- `factor report` accepts agent-submitted live performance data
+- Top factors packaged as OpenClaw skills
+- Local-first registry (`~/.tonquant/registry/`) with well-defined schema for future remote migration
