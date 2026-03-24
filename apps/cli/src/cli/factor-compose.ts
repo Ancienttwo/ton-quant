@@ -1,16 +1,16 @@
-import type { Command } from "commander";
 import {
-  composeFactors,
-  listComposites,
-  getComposite,
-  deleteComposite,
-  publishFactor,
-  listFactors,
-  type CompositeEntry,
   type ComponentWeight,
+  type CompositeEntry,
+  composeFactors,
+  deleteComposite,
+  getComposite,
+  listComposites,
+  listFactors,
+  publishFactor,
 } from "@tonquant/core";
-import { handleCommand } from "../utils/output.js";
 import chalk from "chalk";
+import type { Command } from "commander";
+import { handleCommand } from "../utils/output.js";
 
 // ── Component spec parser ────────────────────────────────────
 
@@ -48,7 +48,7 @@ function formatCompositeResult(entry: CompositeEntry): string {
   const componentLines = def.components
     .map((c) => {
       const color = c.weight >= 0 ? chalk.cyan : chalk.yellow;
-      return `    ${color(c.factorId)} ${color((c.weight * 100).toFixed(1) + "%")}`;
+      return `    ${color(c.factorId)} ${color(`${(c.weight * 100).toFixed(1)}%`)}`;
     })
     .join("\n");
 
@@ -88,7 +88,7 @@ function formatCompositeDetail(entry: CompositeEntry): string {
   const componentLines = def.components
     .map((c) => {
       const color = c.weight >= 0 ? chalk.cyan : chalk.yellow;
-      return `    ${color(c.factorId)} ${color((c.weight * 100).toFixed(1) + "%")}`;
+      return `    ${color(c.factorId)} ${color(`${(c.weight * 100).toFixed(1)}%`)}`;
     })
     .join("\n");
 
@@ -115,7 +115,10 @@ export function registerFactorComposeCommands(factor: Command): void {
     .command("compose")
     .description("Create a weighted composite from existing factors")
     .requiredOption("--name <name>", "Composite display name")
-    .requiredOption("--components <spec>", "Comma-separated factorId:weight (e.g. mom_30d:0.6,vol_7d:0.4)")
+    .requiredOption(
+      "--components <spec>",
+      "Comma-separated factorId:weight (e.g. mom_30d:0.6,vol_7d:0.4)",
+    )
     .option("--description <desc>", "Composite description")
     .option("--no-normalize", "Skip weight normalization")
     .option("--publish", "Also publish composite to registry as a derived factor")
@@ -154,13 +157,13 @@ export function registerFactorComposeCommands(factor: Command): void {
             const factorMap = new Map(allRegistryFactors.map((f) => [f.id, f]));
             const allAssets = [
               ...new Set(
-                entry.definition.components.flatMap((c) =>
-                  factorMap.get(c.factorId)?.assets ?? [],
-                ),
+                entry.definition.components.flatMap((c) => factorMap.get(c.factorId)?.assets ?? []),
               ),
             ];
             const firstComponent = entry.definition.components[0];
-            const timeframe = (firstComponent ? factorMap.get(firstComponent.factorId)?.timeframe : undefined) ?? "1d";
+            const timeframe =
+              (firstComponent ? factorMap.get(firstComponent.factorId)?.timeframe : undefined) ??
+              "1d";
 
             publishFactor(
               {

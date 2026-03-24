@@ -1,10 +1,10 @@
-import type { Command } from "commander";
 import {
-  getFactorDetail,
-  publishFactor,
   FactorBacktestSummarySchema,
   type FactorMetaPublic,
+  getFactorDetail,
+  publishFactor,
 } from "@tonquant/core";
+import type { Command } from "commander";
 import { runBacktest } from "../quant/api/backtest.js";
 import { formatBacktest } from "../utils/format-quant.js";
 import { handleCommand } from "../utils/output.js";
@@ -13,7 +13,7 @@ import { handleCommand } from "../utils/output.js";
 
 function computeCagr(totalReturn: number, dayCount: number): number {
   if (dayCount <= 0) return 0;
-  return Math.pow(1 + totalReturn, 365 / dayCount) - 1;
+  return (1 + totalReturn) ** (365 / dayCount) - 1;
 }
 
 function defaultDateRange(): { startDate: string; endDate: string } {

@@ -1,11 +1,8 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { seedRegistry } from "../../src/services/seed.js";
-import {
-  exportTopFactorsAsSkills,
-  formatSkillMarkdown,
-} from "../../src/services/skill-export.js";
+import { exportTopFactorsAsSkills, formatSkillMarkdown } from "../../src/services/skill-export.js";
 
 const INDEX_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "registry", "factors.json");
 
@@ -20,13 +17,13 @@ describe("skill export service", () => {
     expect(skills.length).toBe(5);
     // Should be sorted by Sharpe (descending)
     for (let i = 1; i < skills.length; i++) {
-      expect(skills[i - 1]!.sharpe).toBeGreaterThanOrEqual(skills[i]!.sharpe);
+      expect(skills[i - 1]?.sharpe).toBeGreaterThanOrEqual(skills[i]?.sharpe);
     }
   });
 
   it("skill has all required fields", () => {
     const skills = exportTopFactorsAsSkills(1);
-    const skill = skills[0]!;
+    const skill = skills[0];
     expect(skill.name).toBeTruthy();
     expect(skill.factorId).toBeTruthy();
     expect(skill.category).toBeTruthy();

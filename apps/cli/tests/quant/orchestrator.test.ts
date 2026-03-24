@@ -27,7 +27,7 @@ describe("orchestrator", () => {
       factors: ["rsi"],
     });
     expect(result.data).not.toBeNull();
-    const m = result.data!.metrics;
+    const m = result.data?.metrics;
     expect(typeof m.sharpe).toBe("number");
     expect(typeof m.totalReturn).toBe("number");
     expect(typeof m.maxDrawdown).toBe("number");
@@ -78,6 +78,6 @@ describe("orchestrator", () => {
     const reportArtifact = result.artifacts.find((a) => a.label === "Research report");
     expect(reportArtifact).toBeDefined();
     const { existsSync } = require("node:fs");
-    expect(existsSync(reportArtifact!.path)).toBe(true);
+    expect(existsSync(reportArtifact?.path)).toBe(true);
   }, 30_000);
 });

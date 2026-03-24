@@ -1,23 +1,22 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { describe, expect, test } from "bun:test";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // Override CONFIG_DIR before importing registry
-const TEST_DIR = join(tmpdir(), `tonquant-registry-test-${Date.now()}`);
+const _TEST_DIR = join(tmpdir(), `tonquant-registry-test-${Date.now()}`);
 
 // We need to mock CONFIG_DIR. Since the registry uses it via import,
 // we test the schemas directly and integration-test through the service.
 import {
-  FactorMetaPublicSchema,
-  FactorMetaPrivateSchema,
-  FactorRegistryIndexSchema,
-  FactorIdSchema,
+  FactorAlertSchema,
   FactorBacktestSummarySchema,
   FactorCategorySchema,
-  FactorSubscriptionSchema,
+  FactorIdSchema,
+  FactorMetaPrivateSchema,
+  FactorMetaPublicSchema,
   FactorPerformanceReportSchema,
-  FactorAlertSchema,
+  FactorRegistryIndexSchema,
+  FactorSubscriptionSchema,
 } from "../../src/types/factor-registry.js";
 
 // ── Schema validation tests ────────────────────────────────

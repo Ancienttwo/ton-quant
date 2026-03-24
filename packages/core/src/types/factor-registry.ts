@@ -42,7 +42,9 @@ export type FactorBacktestSummary = z.infer<typeof FactorBacktestSummarySchema>;
 export const FactorVisibilitySchema = z.enum(["free", "preview", "paid"]);
 
 // Factor ID: lowercase alphanumeric + underscores, 3-64 chars
-export const FactorIdSchema = z.string().regex(/^[a-z0-9_]{3,64}$/u, "Factor ID must be 3-64 chars, lowercase alphanumeric + underscore");
+export const FactorIdSchema = z
+  .string()
+  .regex(/^[a-z0-9_]{3,64}$/u, "Factor ID must be 3-64 chars, lowercase alphanumeric + underscore");
 
 // ── Public layer (always visible) ──────────────────────────
 export const FactorMetaPublicSchema = z.object({

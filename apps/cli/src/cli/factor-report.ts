@@ -1,10 +1,7 @@
+import { listReports, submitReport } from "@tonquant/core";
 import type { Command } from "commander";
-import { submitReport, listReports } from "@tonquant/core";
+import { formatFactorReport, formatFactorReportList } from "../utils/format-marketplace.js";
 import { handleCommand } from "../utils/output.js";
-import {
-  formatFactorReport,
-  formatFactorReportList,
-} from "../utils/format-marketplace.js";
 
 // ── Command registration ─────────────────────────────────────
 
@@ -32,10 +29,6 @@ export function registerFactorReportCommands(factor: Command): void {
     .option("--factor-id <id>", "Filter by factor ID")
     .action(async (opts) => {
       const json = factor.parent?.opts().json ?? false;
-      await handleCommand(
-        { json },
-        async () => listReports(opts.factorId),
-        formatFactorReportList,
-      );
+      await handleCommand({ json }, async () => listReports(opts.factorId), formatFactorReportList);
     });
 }

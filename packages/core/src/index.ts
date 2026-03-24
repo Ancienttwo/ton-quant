@@ -2,7 +2,15 @@
 
 // Config
 export { ensureConfigDir, getConfigPath, loadConfig, saveConfig } from "./config/index.js";
+// Seed content
+export { SEED_FACTORS } from "./data/seed-factors.js";
 export { ServiceError } from "./errors.js";
+// Factor Alert Service
+export {
+  listAlerts,
+  removeAlert,
+  setAlert,
+} from "./services/alerts.js";
 export {
   buildPriceIndex,
   cachedFindAssetBySymbol,
@@ -10,6 +18,19 @@ export {
   cachedGetPools,
   clearCache,
 } from "./services/cache.js";
+// Factor Compose Service
+export {
+  CompositeNotFoundError,
+  CompositionValidationError,
+  composeFactors,
+  DuplicateCompositeError,
+  deleteComposite,
+  deriveBacktest,
+  getComposite,
+  listComposites,
+  normalizeWeights,
+  validateComponents,
+} from "./services/compose.js";
 export {
   fetchBalanceData,
   fetchHistoryData,
@@ -19,7 +40,32 @@ export {
   fetchSwapSimulation,
   fetchTrendingData,
 } from "./services/queries.js";
-
+// Factor Registry Service
+export {
+  BacktestValidationError,
+  DuplicateFactorError,
+  discoverFactors,
+  FactorNotFoundError,
+  getFactorDetail,
+  getFactorLeaderboard,
+  listFactors,
+  publishFactor,
+  subscribeFactor,
+  unsubscribeFactor,
+} from "./services/registry.js";
+// Factor Report Service
+export {
+  listReports,
+  ReportValidationError,
+  submitReport,
+} from "./services/reports.js";
+export { seedRegistry } from "./services/seed.js";
+// Skill export
+export {
+  exportTopFactorsAsSkills,
+  formatSkillMarkdown,
+  type SkillDefinition,
+} from "./services/skill-export.js";
 // Services
 export {
   findAssetBySymbol,
@@ -74,45 +120,6 @@ export {
   TrendingDataSchema,
   TrendingTokenSchema,
 } from "./types/data.js";
-export { decrypt, encrypt, loadOrCreateKey } from "./utils/crypto.js";
-// Utils
-export { calcUsdValue, fromRawUnits, toRawUnits } from "./utils/units.js";
-// Factor Registry Types
-export type {
-  FactorMetaPublic,
-  FactorMetaPrivate,
-  FactorRegistryEntry,
-  FactorRegistryIndex,
-  FactorSubscription,
-  FactorPerformanceReport,
-  FactorAlert,
-  FactorCategory,
-} from "./types/factor-registry.js";
-export {
-  FactorMetaPublicSchema,
-  FactorMetaPrivateSchema,
-  FactorRegistryEntrySchema,
-  FactorRegistryIndexSchema,
-  FactorCategorySchema,
-  FactorIdSchema,
-  FactorBacktestSummarySchema,
-  FactorSubscriptionSchema,
-  FactorPerformanceReportSchema,
-  FactorAlertSchema,
-} from "./types/factor-registry.js";
-// Factor Registry Service
-export {
-  publishFactor,
-  discoverFactors,
-  subscribeFactor,
-  unsubscribeFactor,
-  listFactors,
-  getFactorDetail,
-  getFactorLeaderboard,
-  DuplicateFactorError,
-  FactorNotFoundError,
-  BacktestValidationError,
-} from "./services/registry.js";
 // Factor Compose Types
 export type {
   ComponentWeight,
@@ -126,39 +133,32 @@ export {
   CompositeEntrySchema,
   CompositeIndexSchema,
 } from "./types/factor-compose.js";
-// Factor Compose Service
-export {
-  composeFactors,
-  listComposites,
-  getComposite,
-  deleteComposite,
-  normalizeWeights,
-  deriveBacktest,
-  validateComponents,
-  CompositionValidationError,
-  DuplicateCompositeError,
-  CompositeNotFoundError,
-} from "./services/compose.js";
-// Factor Alert Service
-export {
-  setAlert,
-  listAlerts,
-  removeAlert,
-} from "./services/alerts.js";
-// Factor Report Service
-export {
-  submitReport,
-  listReports,
-  ReportValidationError,
-} from "./services/reports.js";
+// Factor Registry Types
+export type {
+  FactorAlert,
+  FactorCategory,
+  FactorMetaPrivate,
+  FactorMetaPublic,
+  FactorPerformanceReport,
+  FactorRegistryEntry,
+  FactorRegistryIndex,
+  FactorSubscription,
+} from "./types/factor-registry.js";
 // File schemas (alerts, reports)
-export { AlertsFileSchema, ReportsFileSchema } from "./types/factor-registry.js";
-// Seed content
-export { SEED_FACTORS } from "./data/seed-factors.js";
-export { seedRegistry } from "./services/seed.js";
-// Skill export
 export {
-  exportTopFactorsAsSkills,
-  formatSkillMarkdown,
-  type SkillDefinition,
-} from "./services/skill-export.js";
+  AlertsFileSchema,
+  FactorAlertSchema,
+  FactorBacktestSummarySchema,
+  FactorCategorySchema,
+  FactorIdSchema,
+  FactorMetaPrivateSchema,
+  FactorMetaPublicSchema,
+  FactorPerformanceReportSchema,
+  FactorRegistryEntrySchema,
+  FactorRegistryIndexSchema,
+  FactorSubscriptionSchema,
+  ReportsFileSchema,
+} from "./types/factor-registry.js";
+export { decrypt, encrypt, loadOrCreateKey } from "./utils/crypto.js";
+// Utils
+export { calcUsdValue, fromRawUnits, toRawUnits } from "./utils/units.js";

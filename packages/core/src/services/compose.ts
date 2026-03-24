@@ -1,18 +1,18 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { CONFIG_DIR } from "../types/config.js";
+import { join } from "node:path";
 import { ServiceError } from "../errors.js";
-import { listFactors } from "./registry.js";
+import { CONFIG_DIR } from "../types/config.js";
 import {
-  CompositeDefinitionSchema,
-  CompositeIndexSchema,
   type ComponentWeight,
   type CompositeDefinition,
+  CompositeDefinitionSchema,
   type CompositeEntry,
   type CompositeIndex,
+  CompositeIndexSchema,
 } from "../types/factor-compose.js";
 import type { FactorBacktestSummary, FactorMetaPublic } from "../types/factor-registry.js";
+import { listFactors } from "./registry.js";
 
 // ── Paths ──────────────────────────────────────────────────
 const REGISTRY_ROOT = join(CONFIG_DIR, "registry");
@@ -159,16 +159,12 @@ export function composeFactors(
   const allFactors = listFactors();
   const validation = validateComponents(validated.components, allFactors);
   if (!validation.valid) {
-    throw new CompositionValidationError(
-      `Missing factors: ${validation.missing.join(", ")}`,
-    );
+    throw new CompositionValidationError(`Missing factors: ${validation.missing.join(", ")}`);
   }
 
   // 4. Check for duplicates
   const compositeIndex = readCompositeIndex();
-  const existingIdx = compositeIndex.composites.findIndex(
-    (c) => c.definition.id === validated.id,
-  );
+  const existingIdx = compositeIndex.composites.findIndex((c) => c.definition.id === validated.id);
   if (existingIdx >= 0 && !opts.force) {
     throw new DuplicateCompositeError(validated.id);
   }
@@ -182,7 +178,7 @@ export function composeFactors(
   const factorMap = new Map(allFactors.map((f) => [f.id, f]));
   const componentBacktests = finalComponents.map((c) => ({
     weight: c.weight,
-    backtest: factorMap.get(c.factorId)!.backtest,
+    backtest: factorMap.get(c.factorId)?.backtest,
   }));
   const derived = deriveBacktest(componentBacktests);
 

@@ -1,8 +1,8 @@
-import type { Command } from "commander";
 import { writeFileSync } from "node:fs";
 import { exportTopFactorsAsSkills, formatSkillMarkdown } from "@tonquant/core";
-import { handleCommand } from "../utils/output.js";
 import chalk from "chalk";
+import type { Command } from "commander";
+import { handleCommand } from "../utils/output.js";
 
 export function registerFactorSkillCommands(factor: Command): void {
   factor

@@ -1,9 +1,9 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { seedRegistry } from "../../src/services/seed.js";
-import { listFactors } from "../../src/services/registry.js";
 import { SEED_FACTORS } from "../../src/data/seed-factors.js";
+import { listFactors } from "../../src/services/registry.js";
+import { seedRegistry } from "../../src/services/seed.js";
 
 const REGISTRY_ROOT = join(process.env.HOME ?? "/tmp", ".tonquant", "registry");
 const INDEX_PATH = join(REGISTRY_ROOT, "factors.json");

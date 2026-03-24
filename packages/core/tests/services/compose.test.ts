@@ -1,27 +1,24 @@
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import {
+  CompositeNotFoundError,
+  CompositionValidationError,
+  composeFactors,
+  DuplicateCompositeError,
+  deleteComposite,
+  deriveBacktest,
+  getComposite,
+  listComposites,
+  normalizeWeights,
+  validateComponents,
+} from "../../src/services/compose.js";
+import { publishFactor } from "../../src/services/registry.js";
 import {
   ComponentWeightSchema,
   CompositeDefinitionSchema,
-  CompositeEntrySchema,
-  CompositeIndexSchema,
 } from "../../src/types/factor-compose.js";
-import {
-  normalizeWeights,
-  deriveBacktest,
-  validateComponents,
-  composeFactors,
-  listComposites,
-  getComposite,
-  deleteComposite,
-  CompositionValidationError,
-  DuplicateCompositeError,
-  CompositeNotFoundError,
-  COMPOSITES_PATH,
-} from "../../src/services/compose.js";
-import { publishFactor } from "../../src/services/registry.js";
-import type { FactorMetaPublic, FactorBacktestSummary } from "../../src/types/factor-registry.js";
+import type { FactorBacktestSummary, FactorMetaPublic } from "../../src/types/factor-registry.js";
 
 // ── Test helpers ─────────────────────────────────────────────
 
@@ -145,8 +142,8 @@ describe("normalizeWeights", () => {
       { factorId: "bbb", weight: 0.4 },
     ];
     const result = normalizeWeights(input);
-    expect(result[0]!.weight).toBeCloseTo(0.6);
-    expect(result[1]!.weight).toBeCloseTo(0.4);
+    expect(result[0]?.weight).toBeCloseTo(0.6);
+    expect(result[1]?.weight).toBeCloseTo(0.4);
   });
 
   it("normalizes unequal weights", () => {
@@ -156,8 +153,8 @@ describe("normalizeWeights", () => {
     ];
     const result = normalizeWeights(input);
     // abs sum = 1.2, so 0.9/1.2=0.75, 0.3/1.2=0.25
-    expect(result[0]!.weight).toBeCloseTo(0.75);
-    expect(result[1]!.weight).toBeCloseTo(0.25);
+    expect(result[0]?.weight).toBeCloseTo(0.75);
+    expect(result[1]?.weight).toBeCloseTo(0.25);
   });
 
   it("preserves sign for negative weights", () => {
@@ -167,8 +164,8 @@ describe("normalizeWeights", () => {
     ];
     const result = normalizeWeights(input);
     // abs sum = 1.0, already normalized
-    expect(result[0]!.weight).toBeCloseTo(0.8);
-    expect(result[1]!.weight).toBeCloseTo(-0.2);
+    expect(result[0]?.weight).toBeCloseTo(0.8);
+    expect(result[1]?.weight).toBeCloseTo(-0.2);
   });
 
   it("throws on all-zero weights", () => {
@@ -184,15 +181,27 @@ describe("normalizeWeights", () => {
       { factorId: "aaa", weight: 0.9 },
       { factorId: "bbb", weight: 0.3 },
     ];
-    const originalWeight = input[0]!.weight;
+    const originalWeight = input[0]?.weight;
     normalizeWeights(input);
-    expect(input[0]!.weight).toBe(originalWeight);
+    expect(input[0]?.weight).toBe(originalWeight);
   });
 });
 
 describe("deriveBacktest", () => {
-  const bt1 = makeBacktest({ sharpe: 2.0, maxDrawdown: -0.10, winRate: 0.60, cagr: 0.30, tradeCount: 30 });
-  const bt2 = makeBacktest({ sharpe: 1.0, maxDrawdown: -0.20, winRate: 0.50, cagr: 0.15, tradeCount: 42 });
+  const bt1 = makeBacktest({
+    sharpe: 2.0,
+    maxDrawdown: -0.1,
+    winRate: 0.6,
+    cagr: 0.3,
+    tradeCount: 30,
+  });
+  const bt2 = makeBacktest({
+    sharpe: 1.0,
+    maxDrawdown: -0.2,
+    winRate: 0.5,
+    cagr: 0.15,
+    tradeCount: 42,
+  });
 
   it("calculates weighted average sharpe", () => {
     const result = deriveBacktest([
@@ -208,7 +217,7 @@ describe("deriveBacktest", () => {
       { weight: 0.6, backtest: bt1 },
       { weight: 0.4, backtest: bt2 },
     ]);
-    expect(result.maxDrawdown).toBe(-0.20);
+    expect(result.maxDrawdown).toBe(-0.2);
   });
 
   it("calculates weighted average win rate", () => {
@@ -316,7 +325,13 @@ describe("compose service integration", () => {
     publishFactor(
       makeFactor("beta_vol", {
         category: "volatility",
-        backtest: makeBacktest({ sharpe: 1.0, maxDrawdown: -0.20, winRate: 0.50, cagr: 0.15, tradeCount: 42 }),
+        backtest: makeBacktest({
+          sharpe: 1.0,
+          maxDrawdown: -0.2,
+          winRate: 0.5,
+          cagr: 0.15,
+          tradeCount: 42,
+        }),
       }),
       { force: true },
     );
@@ -344,7 +359,7 @@ describe("compose service integration", () => {
 
     expect(entry.definition.id).toBe("mom_vol_blend");
     expect(entry.derivedBacktest.sharpe).toBeCloseTo(1.3); // 0.6*1.5 + 0.4*1.0
-    expect(entry.derivedBacktest.maxDrawdown).toBe(-0.20);
+    expect(entry.derivedBacktest.maxDrawdown).toBe(-0.2);
   });
 
   it("rejects self-referencing composite", () => {

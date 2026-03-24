@@ -3,22 +3,15 @@
  * Shared helpers imported from format-helpers.ts.
  */
 
-import chalk from "chalk";
-import Table from "cli-table3";
 import type {
-  FactorMetaPublic,
   FactorAlert,
+  FactorMetaPublic,
   FactorPerformanceReport,
   FactorSubscription,
 } from "@tonquant/core";
-import {
-  colorSharpe,
-  divider,
-  header,
-  label,
-  pctColor,
-  truncate,
-} from "./format-helpers.js";
+import chalk from "chalk";
+import Table from "cli-table3";
+import { colorSharpe, divider, header, label, pctColor, truncate } from "./format-helpers.js";
 
 // ── Leaderboard ─────────────────────────────────────────────
 
@@ -181,12 +174,7 @@ export interface CompositionResult {
 }
 
 export function formatFactorCompose(result: CompositionResult): string {
-  const lines = [
-    "",
-    header("Factor Composition"),
-    divider(),
-    `  ${chalk.dim("Components:")}`,
-  ];
+  const lines = ["", header("Factor Composition"), divider(), `  ${chalk.dim("Components:")}`];
 
   for (const c of result.components) {
     const w = c.weight.toFixed(2);

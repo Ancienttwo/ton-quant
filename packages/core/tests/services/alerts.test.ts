@@ -1,13 +1,8 @@
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { publishFactor } from "../../src/services/registry.js";
-import {
-  setAlert,
-  listAlerts,
-  removeAlert,
-} from "../../src/services/alerts.js";
-import { FactorNotFoundError } from "../../src/services/registry.js";
+import { listAlerts, removeAlert, setAlert } from "../../src/services/alerts.js";
+import { FactorNotFoundError, publishFactor } from "../../src/services/registry.js";
 import type { FactorMetaPublic } from "../../src/types/factor-registry.js";
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -70,7 +65,7 @@ describe("alert service", () => {
       (a) => a.factorId === "alert_test_factor" && a.condition === "above",
     );
     expect(matching.length).toBe(1);
-    expect(matching[0]!.threshold).toBe(2.0);
+    expect(matching[0]?.threshold).toBe(2.0);
   });
 
   it("allows different conditions for same factor", () => {

@@ -20,7 +20,7 @@ export function header(title: string): string {
 }
 
 export function divider(): string {
-  return chalk.dim("  " + "─".repeat(48));
+  return chalk.dim(`  ${"─".repeat(48)}`);
 }
 
 export function label(text: string): string {

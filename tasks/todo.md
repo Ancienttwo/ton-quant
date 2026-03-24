@@ -40,12 +40,14 @@
 - [x] Phase 2 stabilization — fix TS errors, add registry service tests (229 tests, 0 failures)
 
 ## Workstream 5: Support Command Stabilization
-- [ ] Finish and verify current support-command work:
-  - `price`, `pools`, `trending`
-  - `init`, `balance`, `swap`
-  - `history`, `research`
-- [ ] Keep `research` positioned as lightweight market summary, not quant research
-- [ ] Keep `swap --execute` out of scope until quant core is stable
+- [x] Finish and verify current support-command work:
+  - `price`, `pools`, `trending` — stable (command + test + formatter)
+  - `init` — stable (command + 8 tests covering validation, crypto, config)
+  - `balance`, `swap` — stable (swap --execute deferred by design)
+  - `history`, `research` — stable (command + test + formatter)
+- [x] Keep `research` positioned as lightweight market summary, not quant research
+- [x] Keep `swap --execute` out of scope until quant core is stable
+- [x] Lint clean (cli + core: 0 errors via Biome)
 
 ## Workstream 6: Demo & Polish
 - [ ] Terminal output visual polish (Retro-Futuristic design system)
@@ -55,7 +57,7 @@
 
 ## Verification
 - [x] `bun typecheck` (core + cli: 0 errors; quant-backend: excluded)
-- [ ] `bun lint` (quant-backend excluded from tsconfig, has standalone lint)
-- [x] `bun test` — 229 tests, 0 failures
+- [x] `bun lint` (cli + core: 0 errors; web: pre-existing a11y issues, out of scope)
+- [x] `bun test` — 235 tests, 0 failures
 - [x] `bun run apps/cli/src/index.ts --help` — Phase 1+2 command groups visible
 - [ ] Docs and task files describe the same roadmap and command surface

@@ -1,7 +1,7 @@
-import type { Command } from "commander";
 import { seedRegistry } from "@tonquant/core";
-import { handleCommand } from "../utils/output.js";
 import chalk from "chalk";
+import type { Command } from "commander";
+import { handleCommand } from "../utils/output.js";
 
 export function registerFactorSeedCommands(factor: Command): void {
   factor

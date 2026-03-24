@@ -1,20 +1,20 @@
-import type { Command } from "commander";
 import {
-  publishFactor,
   discoverFactors,
+  type FactorMetaPublic,
+  getFactorLeaderboard,
+  publishFactor,
   subscribeFactor,
   unsubscribeFactor,
-  getFactorLeaderboard,
-  type FactorMetaPublic,
 } from "@tonquant/core";
-import { handleCommand } from "../utils/output.js";
+import type { Command } from "commander";
 import {
-  formatFactorTop,
   formatFactorDiscover,
   formatFactorPublish,
   formatFactorSubscribe,
+  formatFactorTop,
   formatFactorUnsubscribe,
 } from "../utils/format-marketplace.js";
+import { handleCommand } from "../utils/output.js";
 
 // ── Command registration ───────────────────────────────────
 
@@ -23,13 +23,15 @@ import {
  * Called from factor.ts after the quant subcommands (list, compute) are registered.
  */
 export function registerFactorMarketplaceCommands(factor: Command): void {
-
   // ── publish ──
   factor
     .command("publish")
     .description("Publish a factor to the local registry")
     .requiredOption("--name <name>", "Factor display name")
-    .requiredOption("--category <category>", "Category: momentum|value|volatility|liquidity|sentiment|custom")
+    .requiredOption(
+      "--category <category>",
+      "Category: momentum|value|volatility|liquidity|sentiment|custom",
+    )
     .requiredOption("--assets <assets>", "Comma-separated asset symbols (e.g. TON,NOT)")
     .requiredOption("--timeframe <timeframe>", "Timeframe (e.g. 1d, 4h)")
     .option("--source <source>", "Source type: indicator|liquidity|derived", "indicator")
@@ -41,7 +43,10 @@ export function registerFactorMarketplaceCommands(factor: Command): void {
       await handleCommand(
         { json },
         async () => {
-          const id = opts.name.toLowerCase().replace(/[^a-z0-9]/gu, "_").slice(0, 64);
+          const id = opts.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]/gu, "_")
+            .slice(0, 64);
           const now = new Date().toISOString();
           const assets = (opts.assets as string).split(",").map((a: string) => a.trim());
 

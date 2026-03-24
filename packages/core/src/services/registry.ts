@@ -1,17 +1,17 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { CONFIG_DIR } from "../types/config.js";
 import { ServiceError } from "../errors.js";
+import { CONFIG_DIR } from "../types/config.js";
 import {
-  FactorRegistryIndexSchema,
-  FactorMetaPublicSchema,
-  FactorRegistryEntrySchema,
-  SubscriptionFileSchema,
-  type FactorMetaPublic,
-  type FactorRegistryEntry,
-  type FactorRegistryIndex,
-  type FactorSubscription,
   type FactorMetaPrivate,
+  type FactorMetaPublic,
+  FactorMetaPublicSchema,
+  type FactorRegistryEntry,
+  FactorRegistryEntrySchema,
+  type FactorRegistryIndex,
+  FactorRegistryIndexSchema,
+  type FactorSubscription,
+  SubscriptionFileSchema,
 } from "../types/factor-registry.js";
 
 // ── Paths ──────────────────────────────────────────────────
@@ -194,7 +194,9 @@ export function getFactorDetail(factorId: string): FactorRegistryEntry {
   return entry;
 }
 
-export function getFactorLeaderboard(opts: { period?: string; limit?: number } = {}): FactorMetaPublic[] {
+export function getFactorLeaderboard(
+  opts: { period?: string; limit?: number } = {},
+): FactorMetaPublic[] {
   const index = readIndex();
   const sorted = [...index.factors].sort((a, b) => b.backtest.sharpe - a.backtest.sharpe);
   return sorted.slice(0, opts.limit ?? 10);

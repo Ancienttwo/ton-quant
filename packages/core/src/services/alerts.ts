@@ -1,15 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { CONFIG_DIR } from "../types/config.js";
+import { join } from "node:path";
 import { ServiceError } from "../errors.js";
+import { CONFIG_DIR } from "../types/config.js";
+import { AlertsFileSchema, type FactorAlert, FactorAlertSchema } from "../types/factor-registry.js";
 import { getFactorDetail } from "./registry.js";
-import {
-  AlertsFileSchema,
-  FactorAlertSchema,
-  type FactorAlert,
-} from "../types/factor-registry.js";
 
 // ── Paths ──────────────────────────────────────────────────
 const ALERTS_PATH = join(CONFIG_DIR, "alerts.json");
@@ -57,14 +53,10 @@ export function setAlert(
   const existing = readAlerts();
 
   // Deduplicate: same factorId + condition → update threshold
-  const hasDuplicate = existing.some(
-    (a) => a.factorId === factorId && a.condition === condition,
-  );
+  const hasDuplicate = existing.some((a) => a.factorId === factorId && a.condition === condition);
 
   const updated = hasDuplicate
-    ? existing.map((a) =>
-        a.factorId === factorId && a.condition === condition ? alert : a,
-      )
+    ? existing.map((a) => (a.factorId === factorId && a.condition === condition ? alert : a))
     : [...existing, alert];
 
   writeAlerts(updated);

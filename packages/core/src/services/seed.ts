@@ -1,5 +1,5 @@
 import { SEED_FACTORS } from "../data/seed-factors.js";
-import { publishFactor, listFactors, DuplicateFactorError } from "./registry.js";
+import { DuplicateFactorError, listFactors, publishFactor } from "./registry.js";
 
 /**
  * Populate the registry with built-in seed factors.

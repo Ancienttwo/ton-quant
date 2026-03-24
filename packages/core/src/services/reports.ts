@@ -1,15 +1,15 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { CONFIG_DIR } from "../types/config.js";
+import { join } from "node:path";
 import { ServiceError } from "../errors.js";
-import { getFactorDetail } from "./registry.js";
+import { CONFIG_DIR } from "../types/config.js";
 import {
+  type FactorPerformanceReport,
   FactorPerformanceReportSchema,
   ReportsFileSchema,
-  type FactorPerformanceReport,
 } from "../types/factor-registry.js";
+import { getFactorDetail } from "./registry.js";
 
 // ── Constants ──────────────────────────────────────────────
 const REPORTS_PATH = join(CONFIG_DIR, "reports.json");
@@ -67,9 +67,8 @@ export function submitReport(
 
   const existing = readReports();
   // Trim oldest reports if exceeding cap
-  const trimmed = existing.length >= MAX_REPORTS
-    ? existing.slice(existing.length - MAX_REPORTS + 1)
-    : existing;
+  const trimmed =
+    existing.length >= MAX_REPORTS ? existing.slice(existing.length - MAX_REPORTS + 1) : existing;
   writeReports([...trimmed, report]);
   return report;
 }

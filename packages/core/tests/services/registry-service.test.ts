@@ -1,16 +1,16 @@
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { existsSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  publishFactor,
+  DuplicateFactorError,
   discoverFactors,
-  subscribeFactor,
-  unsubscribeFactor,
-  listFactors,
+  FactorNotFoundError,
   getFactorDetail,
   getFactorLeaderboard,
-  DuplicateFactorError,
-  FactorNotFoundError,
+  listFactors,
+  publishFactor,
+  subscribeFactor,
+  unsubscribeFactor,
 } from "../../src/services/registry.js";
 import type { FactorMetaPublic } from "../../src/types/factor-registry.js";
 
@@ -71,7 +71,9 @@ describe("registry service — publishFactor", () => {
 
   it("overwrites with force", () => {
     publishFactor(makeFactor("pub_force_tst", { description: "v1" }));
-    const updated = publishFactor(makeFactor("pub_force_tst", { description: "v2" }), { force: true });
+    const updated = publishFactor(makeFactor("pub_force_tst", { description: "v2" }), {
+      force: true,
+    });
     expect(updated.description).toBe("v2");
   });
 });
@@ -79,15 +81,57 @@ describe("registry service — publishFactor", () => {
 describe("registry service — discoverFactors", () => {
   beforeEach(() => {
     if (existsSync(INDEX_PATH)) rmSync(INDEX_PATH);
-    publishFactor(makeFactor("disc_mom_ton", { category: "momentum", assets: ["TON"], timeframe: "1d", backtest: { sharpe: 2.0, maxDrawdown: -0.1, winRate: 0.6, cagr: 0.3, dataRange: { start: "2026-01-01", end: "2026-03-01" }, tradeCount: 30 } }));
-    publishFactor(makeFactor("disc_vol_not", { category: "volatility", assets: ["NOT"], timeframe: "4h", backtest: { sharpe: 0.8, maxDrawdown: -0.2, winRate: 0.5, cagr: 0.1, dataRange: { start: "2026-01-01", end: "2026-03-01" }, tradeCount: 20 } }));
-    publishFactor(makeFactor("disc_val_ton", { category: "value", assets: ["TON", "NOT"], timeframe: "1d", backtest: { sharpe: 1.2, maxDrawdown: -0.15, winRate: 0.52, cagr: 0.2, dataRange: { start: "2026-01-01", end: "2026-03-01" }, tradeCount: 25 } }));
+    publishFactor(
+      makeFactor("disc_mom_ton", {
+        category: "momentum",
+        assets: ["TON"],
+        timeframe: "1d",
+        backtest: {
+          sharpe: 2.0,
+          maxDrawdown: -0.1,
+          winRate: 0.6,
+          cagr: 0.3,
+          dataRange: { start: "2026-01-01", end: "2026-03-01" },
+          tradeCount: 30,
+        },
+      }),
+    );
+    publishFactor(
+      makeFactor("disc_vol_not", {
+        category: "volatility",
+        assets: ["NOT"],
+        timeframe: "4h",
+        backtest: {
+          sharpe: 0.8,
+          maxDrawdown: -0.2,
+          winRate: 0.5,
+          cagr: 0.1,
+          dataRange: { start: "2026-01-01", end: "2026-03-01" },
+          tradeCount: 20,
+        },
+      }),
+    );
+    publishFactor(
+      makeFactor("disc_val_ton", {
+        category: "value",
+        assets: ["TON", "NOT"],
+        timeframe: "1d",
+        backtest: {
+          sharpe: 1.2,
+          maxDrawdown: -0.15,
+          winRate: 0.52,
+          cagr: 0.2,
+          dataRange: { start: "2026-01-01", end: "2026-03-01" },
+          tradeCount: 25,
+        },
+      }),
+    );
   });
 
   it("filters by category", () => {
     const results = discoverFactors({ category: "momentum" });
     expect(results.length).toBe(1);
-    expect(results[0]!.id).toBe("disc_mom_ton");
+    expect(results[0]?.id).toBe("disc_mom_ton");
   });
 
   it("filters by asset (case insensitive)", () => {
@@ -105,7 +149,7 @@ describe("registry service — discoverFactors", () => {
   it("filters by timeframe", () => {
     const results = discoverFactors({ timeframe: "4h" });
     expect(results.length).toBe(1);
-    expect(results[0]!.id).toBe("disc_vol_not");
+    expect(results[0]?.id).toBe("disc_vol_not");
   });
 
   it("returns empty for non-matching combined filters", () => {
@@ -180,7 +224,7 @@ describe("registry service — listFactors", () => {
   it("filters subscribedOnly", () => {
     const subscribed = listFactors({ subscribedOnly: true });
     expect(subscribed.length).toBe(1);
-    expect(subscribed[0]!.id).toBe("list_fac_aaa");
+    expect(subscribed[0]?.id).toBe("list_fac_aaa");
   });
 });
 
@@ -206,16 +250,49 @@ describe("registry service — getFactorDetail", () => {
 describe("registry service — getFactorLeaderboard", () => {
   beforeEach(() => {
     if (existsSync(INDEX_PATH)) rmSync(INDEX_PATH);
-    publishFactor(makeFactor("lb_low_sharp", { backtest: { sharpe: 0.5, maxDrawdown: -0.2, winRate: 0.4, cagr: 0.05, dataRange: { start: "2026-01-01", end: "2026-03-01" }, tradeCount: 10 } }));
-    publishFactor(makeFactor("lb_mid_sharp", { backtest: { sharpe: 1.5, maxDrawdown: -0.1, winRate: 0.55, cagr: 0.2, dataRange: { start: "2026-01-01", end: "2026-03-01" }, tradeCount: 30 } }));
-    publishFactor(makeFactor("lb_top_sharp", { backtest: { sharpe: 2.5, maxDrawdown: -0.05, winRate: 0.65, cagr: 0.4, dataRange: { start: "2026-01-01", end: "2026-03-01" }, tradeCount: 50 } }));
+    publishFactor(
+      makeFactor("lb_low_sharp", {
+        backtest: {
+          sharpe: 0.5,
+          maxDrawdown: -0.2,
+          winRate: 0.4,
+          cagr: 0.05,
+          dataRange: { start: "2026-01-01", end: "2026-03-01" },
+          tradeCount: 10,
+        },
+      }),
+    );
+    publishFactor(
+      makeFactor("lb_mid_sharp", {
+        backtest: {
+          sharpe: 1.5,
+          maxDrawdown: -0.1,
+          winRate: 0.55,
+          cagr: 0.2,
+          dataRange: { start: "2026-01-01", end: "2026-03-01" },
+          tradeCount: 30,
+        },
+      }),
+    );
+    publishFactor(
+      makeFactor("lb_top_sharp", {
+        backtest: {
+          sharpe: 2.5,
+          maxDrawdown: -0.05,
+          winRate: 0.65,
+          cagr: 0.4,
+          dataRange: { start: "2026-01-01", end: "2026-03-01" },
+          tradeCount: 50,
+        },
+      }),
+    );
   });
 
   it("returns sorted by sharpe descending", () => {
     const top = getFactorLeaderboard();
-    expect(top[0]!.id).toBe("lb_top_sharp");
-    expect(top[1]!.id).toBe("lb_mid_sharp");
-    expect(top[2]!.id).toBe("lb_low_sharp");
+    expect(top[0]?.id).toBe("lb_top_sharp");
+    expect(top[1]?.id).toBe("lb_mid_sharp");
+    expect(top[2]?.id).toBe("lb_low_sharp");
   });
 
   it("respects limit parameter", () => {

@@ -1,5 +1,5 @@
-import { getFactorLeaderboard } from "./registry.js";
 import type { FactorMetaPublic } from "../types/factor-registry.js";
+import { getFactorLeaderboard } from "./registry.js";
 
 // ── Types ──────────────────────────────────────────────────
 

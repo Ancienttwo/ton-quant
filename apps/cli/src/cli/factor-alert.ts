@@ -1,11 +1,8 @@
-import type { Command } from "commander";
-import { setAlert, listAlerts, removeAlert } from "@tonquant/core";
-import { handleCommand } from "../utils/output.js";
-import {
-  formatFactorAlertSet,
-  formatFactorAlertList,
-} from "../utils/format-marketplace.js";
+import { listAlerts, removeAlert, setAlert } from "@tonquant/core";
 import chalk from "chalk";
+import type { Command } from "commander";
+import { formatFactorAlertList, formatFactorAlertSet } from "../utils/format-marketplace.js";
+import { handleCommand } from "../utils/output.js";
 
 // ── Command registration ─────────────────────────────────────
 

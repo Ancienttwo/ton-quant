@@ -1,13 +1,8 @@
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { publishFactor } from "../../src/services/registry.js";
-import {
-  submitReport,
-  listReports,
-  ReportValidationError,
-} from "../../src/services/reports.js";
-import { FactorNotFoundError } from "../../src/services/registry.js";
+import { FactorNotFoundError, publishFactor } from "../../src/services/registry.js";
+import { listReports, submitReport } from "../../src/services/reports.js";
 import type { FactorMetaPublic } from "../../src/types/factor-registry.js";
 
 // ── Helpers ──────────────────────────────────────────────────
