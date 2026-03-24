@@ -50,9 +50,9 @@
 - [x] Lint clean (cli + core: 0 errors via Biome)
 
 ## Workstream 6: Demo & Polish
-- [ ] Terminal output visual polish (Retro-Futuristic design system)
-- [ ] Demo video script outline
-- [ ] Demo video production (Remotion or asciinema)
+- [x] Terminal output visual polish (format.ts unified with format-helpers.ts header/divider)
+- [x] Demo video script outline (demo/script.md — 5 scenes, Phase 2 narrative)
+- [x] Demo video production (demo/recording.cast — asciinema, 656 frames)
 - [ ] Final submission
 
 ## Verification
@@ -60,4 +60,4 @@
 - [x] `bun lint` (cli + core: 0 errors; web: pre-existing a11y issues, out of scope)
 - [x] `bun test` — 235 tests, 0 failures
 - [x] `bun run apps/cli/src/index.ts --help` — Phase 1+2 command groups visible
-- [ ] Docs and task files describe the same roadmap and command surface
+- [x] Docs and task files describe the same roadmap and command surface

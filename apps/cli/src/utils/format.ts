@@ -9,6 +9,7 @@ import type {
   SwapSimulationData,
   TrendingData,
 } from "../types/cli.js";
+import { divider, header } from "./format-helpers.js";
 
 /**
  * Format a raw price string to a human-readable number.
@@ -40,7 +41,8 @@ export function greenRed(value: string): string {
  */
 export function formatPrice(data: PriceData): string {
   const lines = [
-    chalk.bold(`${data.symbol} (${data.name})`),
+    header(`${data.symbol} (${data.name})`),
+    divider(),
     `  Price:     ${chalk.cyan(`$${formatUsd(data.price_usd)}`)}`,
     `  24h:       ${greenRed(data.change_24h)}`,
     `  Volume:    $${data.volume_24h}`,
@@ -95,9 +97,9 @@ export function formatTrending(data: TrendingData): string {
  */
 export function formatBalance(data: BalanceData): string {
   const lines = [
-    chalk.bold(`Wallet: ${data.address}`),
-    chalk.dim(`Network: ${data.network}`),
-    "",
+    header(`Wallet: ${data.address}`),
+    chalk.dim(`  Network: ${data.network}`),
+    divider(),
     `  TON:  ${chalk.cyan(data.toncoin.balance)} ($${formatUsd(data.toncoin.usd_value)})`,
   ];
   for (const jetton of data.jettons) {
@@ -105,7 +107,7 @@ export function formatBalance(data: BalanceData): string {
       `  ${jetton.symbol}: ${chalk.cyan(jetton.balance)} ($${formatUsd(jetton.usd_value)})`,
     );
   }
-  lines.push("", chalk.bold(`  Total: $${formatUsd(data.total_usd)}`));
+  lines.push(divider(), chalk.bold(`  Total: $${formatUsd(data.total_usd)}`));
   return lines.join("\n");
 }
 
@@ -125,7 +127,7 @@ export function formatSwapSimulation(data: SwapSimulationData): string {
     { Slippage: data.slippage_tolerance },
     { Route: data.route.join(" → ") },
   );
-  return `${chalk.bold("Swap Simulation")}\n${table.toString()}`;
+  return `${header("Swap Simulation")}\n${divider()}\n${table.toString()}`;
 }
 
 /**
@@ -133,9 +135,9 @@ export function formatSwapSimulation(data: SwapSimulationData): string {
  */
 export function formatHistory(data: HistoryData): string {
   const lines = [
-    chalk.bold(`Transaction History: ${data.address}`),
-    chalk.dim(`Showing ${data.transactions.length} of ${data.total} transactions`),
-    "",
+    header(`Transaction History: ${data.address}`),
+    chalk.dim(`  Showing ${data.transactions.length} of ${data.total} transactions`),
+    divider(),
   ];
   const table = new Table({
     head: ["Time", "Type", "Description", "Status"],
@@ -158,11 +160,12 @@ export function formatHistory(data: HistoryData): string {
  */
 export function formatResearch(data: ResearchData): string {
   const lines = [
-    chalk.bold(`Research Report: ${data.token.symbol} (${data.token.name})`),
-    "",
+    header(`Research Report: ${data.token.symbol} (${data.token.name})`),
+    divider(),
     formatPrice(data.token),
     "",
-    chalk.bold("Pools:"),
+    header("Pools"),
+    divider(),
   ];
   for (const pool of data.pools) {
     lines.push(
@@ -171,7 +174,8 @@ export function formatResearch(data: ResearchData): string {
   }
   lines.push(
     "",
-    chalk.bold("Summary:"),
+    header("Summary"),
+    divider(),
     `  Total Liquidity: $${data.summary.total_liquidity_usd}`,
     `  Pool Count: ${data.summary.pool_count}`,
     `  Top Pair: ${data.summary.top_pair}`,

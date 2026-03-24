@@ -1,5 +1,5 @@
 #!/bin/bash
-# TonQuant Demo Runner
+# TonQuant Demo Runner — Phase 2: Factor Marketplace
 # Usage: ./demo/run.sh
 # Records with asciinema if available, otherwise just runs the demo.
 #
@@ -40,7 +40,7 @@ clear
 # Title
 printf "\n"
 printf "  \033[1;36m╔══════════════════════════════════════════════╗\033[0m\n"
-printf "  \033[1;36m║\033[0m  \033[1;37mTonQuant\033[0m — AI Quant Research for TON       \033[1;36m║\033[0m\n"
+printf "  \033[1;36m║\033[0m  \033[1;37mTonQuant\033[0m — Agent-Native Factor Marketplace  \033[1;36m║\033[0m\n"
 printf "  \033[1;36m║\033[0m  \033[2mTON AI Agent Hackathon · Track 1\033[0m            \033[1;36m║\033[0m\n"
 printf "  \033[1;36m╚══════════════════════════════════════════════╝\033[0m\n"
 sleep 2
@@ -49,32 +49,31 @@ sleep 2
 section "Available Commands"
 run "tonquant --help"
 
-# Scene 2: Market check
+# Scene 2: Market Check
 section "Market Check"
 run "tonquant price TON"
 run "tonquant trending --limit 5"
 
-# Scene 3: Quant tools
-section "Quant Tools"
-run "tonquant factor list"
-run "tonquant preset list"
+# Scene 3: Factor Marketplace
+section "Factor Marketplace"
+printf "\n\033[2m  Browse, discover, and compose quant factors\033[0m\n"
+sleep 1
+run "tonquant factor seed"
+run "tonquant factor top --limit 5"
+run "tonquant factor discover --category momentum --min-sharpe 1.0"
 
-# Scene 4: The main event
+# Scene 4: Agent Research Loop
 section "Agent-Driven Research Loop"
 printf "\n\033[2m  One command → data → factors → backtest → report\033[0m\n"
 sleep 1
 run "tonquant autoresearch run --asset TON/USDT --factors rsi,macd,volatility"
 
-# Scene 5: Show report
-section "Generated Report"
-LATEST=$(ls -td ~/.tonquant/quant/autoresearch-runs/orch-* 2>/dev/null | head -1)
-if [ -n "$LATEST" ]; then
-  run "head -25 $LATEST/report.md"
-fi
-
-# Scene 6: JSON output
-section "JSON for AI Agents"
-run "tonquant preset show momentum-ton --json"
+# Scene 5: Factor Composition + JSON
+section "Factor Composition"
+printf "\n\033[2m  Blend factors with custom weights → structured JSON for agents\033[0m\n"
+sleep 1
+run "tonquant factor compose --name 'Momentum+Vol' --components mom_30d_ton:0.6,vol_30d_ton:0.4"
+run "tonquant factor compose --name 'Momentum+Vol' --components mom_30d_ton:0.6,vol_30d_ton:0.4 --force --json"
 
 # Closing
 printf "\n"
