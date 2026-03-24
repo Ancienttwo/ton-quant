@@ -159,7 +159,8 @@ export function registerFactorComposeCommands(factor: Command): void {
                 ),
               ),
             ];
-            const timeframe = factorMap.get(entry.definition.components[0].factorId)?.timeframe ?? "1d";
+            const firstComponent = entry.definition.components[0];
+            const timeframe = (firstComponent ? factorMap.get(firstComponent.factorId)?.timeframe : undefined) ?? "1d";
 
             publishFactor(
               {

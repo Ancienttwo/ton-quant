@@ -70,7 +70,7 @@ describe("alert service", () => {
       (a) => a.factorId === "alert_test_factor" && a.condition === "above",
     );
     expect(matching.length).toBe(1);
-    expect(matching[0].threshold).toBe(2.0);
+    expect(matching[0]!.threshold).toBe(2.0);
   });
 
   it("allows different conditions for same factor", () => {

@@ -79,6 +79,10 @@ export function deriveBacktest(
   const rangeStart = starts[starts.length - 1]; // latest start
   const rangeEnd = ends[0]; // earliest end
 
+  if (!rangeStart || !rangeEnd) {
+    throw new CompositionValidationError("Empty component list.");
+  }
+
   if (rangeStart >= rangeEnd) {
     throw new CompositionValidationError(
       "Component factors have non-overlapping data ranges. No common backtest period exists.",

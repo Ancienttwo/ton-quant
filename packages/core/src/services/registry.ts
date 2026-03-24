@@ -54,8 +54,15 @@ function readIndex(): FactorRegistryIndex {
   if (!existsSync(INDEX_PATH)) {
     return { version: "1.0.0", factors: [] };
   }
-  const raw = JSON.parse(readFileSync(INDEX_PATH, "utf-8"));
-  return FactorRegistryIndexSchema.parse(raw);
+  try {
+    const raw = JSON.parse(readFileSync(INDEX_PATH, "utf-8"));
+    return FactorRegistryIndexSchema.parse(raw);
+  } catch {
+    throw new ServiceError(
+      `factors.json is corrupted. Delete ${INDEX_PATH} to reset.`,
+      "REGISTRY_CORRUPTED",
+    );
+  }
 }
 
 function writeIndex(index: FactorRegistryIndex): void {

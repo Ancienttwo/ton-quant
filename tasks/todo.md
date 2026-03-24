@@ -26,6 +26,19 @@
 - [x] Implement `autoresearch init / run / status / list`
 - [x] Keep current support commands available without quant-runner coupling
 
+## Workstream 4.5: Factor Marketplace (Phase 2)
+- [x] Factor registry types (`packages/core/src/types/factor-registry.ts`)
+- [x] Registry service (`packages/core/src/services/registry.ts`)
+- [x] CLI factor commands (`apps/cli/src/cli/factor.ts` + factor-*.ts)
+- [x] Factor Leaderboard (`factor top`)
+- [x] One-Click Backtest (`factor backtest`)
+- [x] Factor Composition (`factor compose`)
+- [x] Factor Alerts (`factor alert`)
+- [x] Social Proof (`factor report`)
+- [x] Seed content — 10+ built-in starter factors
+- [x] OpenClaw skill packaging (`factor skill-export`)
+- [x] Phase 2 stabilization — fix TS errors, add registry service tests (229 tests, 0 failures)
+
 ## Workstream 5: Support Command Stabilization
 - [ ] Finish and verify current support-command work:
   - `price`, `pools`, `trending`
@@ -41,8 +54,8 @@
 - [ ] Final submission
 
 ## Verification
-- [x] `bun typecheck`
+- [x] `bun typecheck` (core + cli: 0 errors; quant-backend: excluded)
 - [ ] `bun lint` (quant-backend excluded from tsconfig, has standalone lint)
-- [x] `bun test` — 135 tests, 0 failures
-- [x] `bun run src/index.ts --help` — Phase 1 command groups visible
+- [x] `bun test` — 229 tests, 0 failures
+- [x] `bun run apps/cli/src/index.ts --help` — Phase 1+2 command groups visible
 - [ ] Docs and task files describe the same roadmap and command surface

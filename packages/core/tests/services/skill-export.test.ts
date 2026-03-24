@@ -20,13 +20,13 @@ describe("skill export service", () => {
     expect(skills.length).toBe(5);
     // Should be sorted by Sharpe (descending)
     for (let i = 1; i < skills.length; i++) {
-      expect(skills[i - 1].sharpe).toBeGreaterThanOrEqual(skills[i].sharpe);
+      expect(skills[i - 1]!.sharpe).toBeGreaterThanOrEqual(skills[i]!.sharpe);
     }
   });
 
   it("skill has all required fields", () => {
     const skills = exportTopFactorsAsSkills(1);
-    const skill = skills[0];
+    const skill = skills[0]!;
     expect(skill.name).toBeTruthy();
     expect(skill.factorId).toBeTruthy();
     expect(skill.category).toBeTruthy();

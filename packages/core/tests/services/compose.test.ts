@@ -145,8 +145,8 @@ describe("normalizeWeights", () => {
       { factorId: "bbb", weight: 0.4 },
     ];
     const result = normalizeWeights(input);
-    expect(result[0].weight).toBeCloseTo(0.6);
-    expect(result[1].weight).toBeCloseTo(0.4);
+    expect(result[0]!.weight).toBeCloseTo(0.6);
+    expect(result[1]!.weight).toBeCloseTo(0.4);
   });
 
   it("normalizes unequal weights", () => {
@@ -156,8 +156,8 @@ describe("normalizeWeights", () => {
     ];
     const result = normalizeWeights(input);
     // abs sum = 1.2, so 0.9/1.2=0.75, 0.3/1.2=0.25
-    expect(result[0].weight).toBeCloseTo(0.75);
-    expect(result[1].weight).toBeCloseTo(0.25);
+    expect(result[0]!.weight).toBeCloseTo(0.75);
+    expect(result[1]!.weight).toBeCloseTo(0.25);
   });
 
   it("preserves sign for negative weights", () => {
@@ -167,8 +167,8 @@ describe("normalizeWeights", () => {
     ];
     const result = normalizeWeights(input);
     // abs sum = 1.0, already normalized
-    expect(result[0].weight).toBeCloseTo(0.8);
-    expect(result[1].weight).toBeCloseTo(-0.2);
+    expect(result[0]!.weight).toBeCloseTo(0.8);
+    expect(result[1]!.weight).toBeCloseTo(-0.2);
   });
 
   it("throws on all-zero weights", () => {
@@ -184,9 +184,9 @@ describe("normalizeWeights", () => {
       { factorId: "aaa", weight: 0.9 },
       { factorId: "bbb", weight: 0.3 },
     ];
-    const originalWeight = input[0].weight;
+    const originalWeight = input[0]!.weight;
     normalizeWeights(input);
-    expect(input[0].weight).toBe(originalWeight);
+    expect(input[0]!.weight).toBe(originalWeight);
   });
 });
 
