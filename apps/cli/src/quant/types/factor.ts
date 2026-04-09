@@ -1,10 +1,14 @@
 import { z } from "zod";
 import {
+  AssetClassSchema,
   DataModeSchema,
   DateStringSchema,
-  MarketCodeSchema,
+  InstrumentRefSchema,
+  MarketRegionSchema,
+  ProviderCodeSchema,
   QuantParamValueSchema,
   QuantRunMetaSchema,
+  VenueCodeSchema,
 } from "./base.js";
 
 export const FactorComputeModeSchema = z.enum(["batch"]);
@@ -39,17 +43,35 @@ export const FactorListResultSchema = QuantRunMetaSchema.extend({
 });
 export type FactorListResult = z.infer<typeof FactorListResultSchema>;
 
-export const FactorComputeRequestSchema = z.object({
-  market: MarketCodeSchema.default("ton"),
-  symbols: z.array(z.string().min(1)).min(1),
-  factors: z.array(z.string().min(1)).min(1),
-  factorParams: z.record(z.string(), z.record(z.string(), QuantParamValueSchema)).default({}),
-  startDate: DateStringSchema.optional(),
-  endDate: DateStringSchema.optional(),
-  datasetPath: z.string().min(1).optional(),
-  dataMode: DataModeSchema.optional(),
-  outputDir: z.string().min(1).optional(),
-});
+export const FactorComputeRequestSchema = z
+  .object({
+    assetClass: AssetClassSchema.default("crypto"),
+    marketRegion: MarketRegionSchema.default("ton"),
+    venue: VenueCodeSchema.optional(),
+    provider: ProviderCodeSchema.optional(),
+    symbols: z.array(z.string().min(1)).optional(),
+    instruments: z.array(InstrumentRefSchema).optional(),
+    factors: z.array(z.string().min(1)).min(1),
+    factorParams: z.record(z.string(), z.record(z.string(), QuantParamValueSchema)).default({}),
+    startDate: DateStringSchema.optional(),
+    endDate: DateStringSchema.optional(),
+    datasetPath: z.string().min(1).optional(),
+    dataMode: DataModeSchema.optional(),
+    outputDir: z.string().min(1).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      !value.datasetPath &&
+      (value.symbols?.length ?? 0) === 0 &&
+      (value.instruments?.length ?? 0) === 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Expected datasetPath, symbols, or instruments.",
+        path: ["symbols"],
+      });
+    }
+  });
 export type FactorComputeRequest = z.input<typeof FactorComputeRequestSchema>;
 
 export const FactorComputeResultSchema = QuantRunMetaSchema.extend({

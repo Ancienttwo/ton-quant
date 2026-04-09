@@ -12,6 +12,7 @@ import {
   type DataListResult,
   DataListResultSchema,
 } from "../types/index.js";
+import { withResolvedInstruments } from "./request-market.js";
 import { invokeQuantCli, type RunQuantApiOptions } from "./shared.js";
 
 export async function runDataFetch(
@@ -19,11 +20,12 @@ export async function runDataFetch(
   options?: RunQuantApiOptions,
 ): Promise<DataFetchResult> {
   const parsed = DataFetchRequestSchema.parse(request);
+  const normalized = withResolvedInstruments(parsed);
   return invokeQuantCli(
     "data-fetch",
     ["data", "fetch"],
-    parsed,
-    parsed,
+    normalized,
+    normalized,
     (raw) => DataFetchResultSchema.parse(raw),
     options,
   );
@@ -49,11 +51,15 @@ export async function runDataInfo(
   options?: RunQuantApiOptions,
 ): Promise<DataInfoResult> {
   const parsed = DataInfoRequestSchema.parse(request);
+  const normalized = withResolvedInstruments({
+    ...parsed,
+    symbols: [parsed.symbol],
+  });
   return invokeQuantCli(
     "data-fetch",
     ["data", "info"],
-    parsed,
-    parsed,
+    normalized,
+    normalized,
     (raw) => DataInfoResultSchema.parse(raw),
     options,
   );

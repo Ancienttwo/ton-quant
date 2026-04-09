@@ -8,7 +8,7 @@ export function registerPresetCommand(program: Command): void {
 
   command
     .command("list")
-    .description("List built-in TON quant presets")
+    .description("List built-in quant presets")
     .action(async () => {
       const json = program.opts().json ?? false;
       await handleCommand({ json }, () => runPresetList(), formatPresetList);
@@ -16,7 +16,7 @@ export function registerPresetCommand(program: Command): void {
 
   command
     .command("show <presetId>")
-    .description("Show a TON quant preset definition")
+    .description("Show a quant preset definition")
     .action(async (presetId: string) => {
       const json = program.opts().json ?? false;
       await handleCommand({ json }, () => runPresetShow({ presetId }), formatPresetShow);

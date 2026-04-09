@@ -4,6 +4,7 @@ import {
   type BacktestResult,
   BacktestResultSchema,
 } from "../types/index.js";
+import { withResolvedInstruments } from "./request-market.js";
 import { invokeQuantCli, type RunQuantApiOptions } from "./shared.js";
 
 export async function runBacktest(
@@ -11,11 +12,12 @@ export async function runBacktest(
   options?: RunQuantApiOptions,
 ): Promise<BacktestResult> {
   const parsed = BacktestRequestSchema.parse(request);
+  const normalized = withResolvedInstruments(parsed);
   return invokeQuantCli(
     "backtests",
     ["backtest", "run"],
-    parsed,
-    parsed,
+    normalized,
+    normalized,
     (raw) => BacktestResultSchema.parse(raw),
     options,
   );

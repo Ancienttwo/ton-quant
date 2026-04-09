@@ -14,22 +14,38 @@ import {
   header,
   label,
   pctColor,
-  recColor,
 } from "./format-helpers.js";
 
 // ── Data Commands ────────────────────────────────────────────
 
 export function formatDataFetch(data: Record<string, unknown>): string {
   const symbols = data.fetchedSymbols as string[];
+  const instruments =
+    (data.instruments as Array<{
+      displaySymbol: string;
+      assetClass: string;
+      marketRegion: string;
+      venue: string;
+    }>) ?? [];
   const range = data.dateRange as { start: string; end: string } | undefined;
 
   const table = new Table({
-    head: ["Symbol", "Bars", "Interval"],
+    head: ["Symbol", "Asset", "Market", "Venue", "Bars", "Interval"],
     style: { head: ["cyan"] },
   });
 
+  const barsPerInstrument =
+    symbols.length > 0 ? Math.round(Number(data.barCount ?? 0) / symbols.length) : 0;
   for (const s of symbols) {
-    table.push([chalk.cyan(s), String(data.barCount), "1d"]);
+    const instrument = instruments.find((entry) => entry.displaySymbol === s);
+    table.push([
+      chalk.cyan(s),
+      instrument?.assetClass ?? "?",
+      instrument?.marketRegion ?? "?",
+      instrument?.venue ?? "?",
+      String(barsPerInstrument),
+      "1d",
+    ]);
   }
 
   const lines = ["", header("Data Fetch"), divider(), table.toString()];
@@ -44,16 +60,28 @@ export function formatDataFetch(data: Record<string, unknown>): string {
 }
 
 export function formatDataList(data: Record<string, unknown>): string {
-  const datasets = data.datasets as Array<{ symbol: string; barCount: number; interval: string }>;
+  const datasets = data.datasets as Array<{
+    symbol: string;
+    barCount: number;
+    interval: string;
+    instrument?: { assetClass: string; marketRegion: string; venue: string };
+  }>;
   if (!datasets?.length)
     return `\n${header("Datasets")}\n${divider()}\n  ${chalk.dim("No cached datasets.")}\n`;
 
   const table = new Table({
-    head: ["Symbol", "Interval", "Bars"],
+    head: ["Symbol", "Asset", "Market", "Venue", "Interval", "Bars"],
     style: { head: ["cyan"] },
   });
   for (const d of datasets) {
-    table.push([chalk.cyan(d.symbol), d.interval, String(d.barCount)]);
+    table.push([
+      chalk.cyan(d.symbol),
+      d.instrument?.assetClass ?? "?",
+      d.instrument?.marketRegion ?? "?",
+      d.instrument?.venue ?? "?",
+      d.interval,
+      String(d.barCount),
+    ]);
   }
   return `\n${header("Datasets")}\n${divider()}\n${table.toString()}\n`;
 }
@@ -61,6 +89,7 @@ export function formatDataList(data: Record<string, unknown>): string {
 export function formatDataInfo(data: Record<string, unknown>): string {
   const ds = data.dataset as {
     symbol: string;
+    instrument?: { assetClass: string; marketRegion: string; venue: string };
     interval: string;
     barCount: number;
     startDate?: string;
@@ -70,6 +99,9 @@ export function formatDataInfo(data: Record<string, unknown>): string {
     "",
     header(`Dataset: ${ds.symbol}`),
     divider(),
+    `  ${label("Asset:")}     ${chalk.cyan(ds.instrument?.assetClass ?? "?")}`,
+    `  ${label("Market:")}    ${chalk.cyan(ds.instrument?.marketRegion ?? "?")}`,
+    `  ${label("Venue:")}     ${chalk.cyan(ds.instrument?.venue ?? "?")}`,
     `  ${label("Interval:")}  ${chalk.cyan(ds.interval)}`,
     `  ${label("Bars:")}      ${chalk.cyan(String(ds.barCount))}`,
   ];
@@ -185,6 +217,9 @@ export function formatPresetShow(data: Record<string, unknown>): string {
     header(`Preset: ${preset.name}`),
     divider(),
     `  ${label("Strategy:")}    ${chalk.cyan(String(preset.strategy))}`,
+    `  ${label("Asset:")}       ${chalk.cyan(String(preset.assetClass ?? "?"))}`,
+    `  ${label("Market:")}      ${chalk.cyan(String(preset.marketRegion ?? "?"))}`,
+    `  ${label("Venue:")}       ${chalk.cyan(String(preset.venue ?? "?"))}`,
     `  ${label("Symbols:")}     ${chalk.cyan((preset.symbols as string[]).join(", "))}`,
   ];
   if (preset.thesis) {
@@ -208,62 +243,148 @@ export function formatPresetShow(data: Record<string, unknown>): string {
 
 // ── Autoresearch Commands ────────────────────────────────────
 
+function formatTrackStatus(status: string): string {
+  switch (status) {
+    case "completed":
+    case "idle":
+      return chalk.green.bold(status.toUpperCase());
+    case "pending-review":
+      return chalk.yellow.bold(status.toUpperCase());
+    case "running":
+      return chalk.cyan.bold(status.toUpperCase());
+    case "blocked":
+    case "failed":
+      return chalk.red.bold(status.toUpperCase());
+    default:
+      return chalk.white.bold(status.toUpperCase());
+  }
+}
+
+function countCandidatesByStatus(candidates: Array<{ status: string }>): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const candidate of candidates) {
+    counts[candidate.status] = (counts[candidate.status] ?? 0) + 1;
+  }
+  return counts;
+}
+
 export function formatAutoresearchResult(data: Record<string, unknown>): string {
-  const steps = data.steps as Array<{ step: string; status: string; summary: string }>;
-  const status = data.status as string;
+  const baseline = data.baseline as {
+    title: string;
+    strategy: string;
+    assetClass?: string;
+    marketRegion?: string;
+    venue?: string;
+    symbols: string[];
+    startDate: string;
+    endDate: string;
+  };
+  const state = data.state as {
+    status: string;
+    latestRun?: {
+      runId: string;
+      status: string;
+      iterationsCompleted: number;
+      iterationsRequested: number;
+      completedAt?: string | null;
+    } | null;
+    bestCandidateId?: string | null;
+    latestCandidateId?: string | null;
+  };
+  const candidates =
+    (data.candidates as Array<{
+      candidateId: string;
+      status: string;
+      summary?: string | null;
+    }>) ?? [];
+  const history =
+    (data.history as Array<{
+      timestamp: string;
+      message: string;
+    }>) ?? [];
+  const counts = countCandidatesByStatus(candidates);
+  const pendingCount = counts["pending-review"] ?? 0;
+  const lines = [
+    "",
+    header("Autoresearch"),
+    divider(),
+    `  ${label("Track:")} ${chalk.cyan(baseline.title)}`,
+    `  ${label("Status:")} ${formatTrackStatus(String(data.status ?? state.status ?? "unknown"))}`,
+    `  ${label("Strategy:")} ${chalk.cyan(baseline.strategy)}`,
+    `  ${label("Asset:")} ${chalk.cyan(String(baseline.assetClass ?? "?"))}`,
+    `  ${label("Market:")} ${chalk.cyan(String(baseline.marketRegion ?? "?"))}`,
+    `  ${label("Venue:")} ${chalk.cyan(String(baseline.venue ?? "?"))}`,
+    `  ${label("Symbols:")} ${chalk.cyan(baseline.symbols.join(", "))}`,
+    `  ${label("Range:")} ${chalk.cyan(baseline.startDate)} → ${chalk.cyan(baseline.endDate)}`,
+    `  ${label("Candidates:")} ${chalk.cyan(String(candidates.length))} total, ${chalk.yellow(String(pendingCount))} pending review`,
+  ];
 
-  const statusColor =
-    status === "success" ? chalk.green.bold("SUCCESS") : chalk.red.bold(status.toUpperCase());
-
-  const lines = ["", header("Autoresearch"), divider(), `  ${label("Status:")} ${statusColor}`, ""];
-
-  // Pipeline steps
-  for (const step of steps) {
-    const icon = step.status === "completed" ? chalk.green("✓") : chalk.red("✗");
-    const stepName = chalk.cyan(step.step.replace(/_/g, " "));
-    lines.push(`  ${icon} ${stepName}  ${chalk.dim(step.summary)}`);
+  if (state.latestRun) {
+    lines.push(
+      `  ${label("Latest Run:")} ${chalk.cyan(state.latestRun.runId)} ${chalk.dim(`(${state.latestRun.iterationsCompleted}/${state.latestRun.iterationsRequested})`)}`,
+    );
+  }
+  if (state.bestCandidateId) {
+    lines.push(`  ${label("Best Candidate:")} ${chalk.green(state.bestCandidateId)}`);
+  }
+  if (state.latestCandidateId) {
+    lines.push(`  ${label("Latest Candidate:")} ${chalk.cyan(state.latestCandidateId)}`);
   }
 
-  // Results
-  const result = data.data as Record<string, unknown> | null;
-  if (result) {
-    const metrics = result.metrics as Record<string, number>;
-    lines.push("");
-    lines.push(divider());
-
-    const metricsTable = new Table({
-      head: ["Metric", "Value"],
+  if (candidates.length > 0) {
+    const candidateTable = new Table({
+      head: ["Candidate", "Status", "Summary"],
       style: { head: ["cyan"] },
     });
-    metricsTable.push(
-      [label("Recommendation"), recColor(result.recommendation as string)],
-      [label("Sharpe Ratio"), colorSharpe(metrics.sharpe ?? 0)],
-      [label("Total Return"), pctColor(metrics.totalReturn ?? 0)],
-      [label("Max Drawdown"), colorDrawdown(metrics.maxDrawdown ?? 0)],
-      [label("Win Rate"), chalk.cyan(`${((metrics.winRate ?? 0) * 100).toFixed(1)}%`)],
-      [label("Trades"), chalk.cyan(String(metrics.tradeCount ?? 0))],
-    );
-    lines.push(metricsTable.toString());
-
-    // Factor summary
-    const factors = result.factorsSummary as Record<string, number> | undefined;
-    if (factors && Object.keys(factors).length > 0) {
-      lines.push("");
-      lines.push(`  ${chalk.bold.cyan("Factors:")}`);
-      for (const [name, val] of Object.entries(factors)) {
-        let formatted: string;
-        if (name === "rsi") formatted = colorRSI(val);
-        else if (name.startsWith("macd")) formatted = colorMACD(val);
-        else if (name === "volatility") formatted = chalk.yellow(`${val}%`);
-        else formatted = chalk.cyan(String(val));
-        lines.push(`    ${chalk.dim(name)}: ${formatted}`);
-      }
+    for (const candidate of candidates.slice(-5).reverse()) {
+      candidateTable.push([
+        chalk.cyan(candidate.candidateId),
+        formatTrackStatus(candidate.status),
+        chalk.dim(candidate.summary ?? ""),
+      ]);
     }
+    lines.push("", candidateTable.toString());
+  }
 
-    lines.push("");
-    lines.push(`  ${label("Report:")} ${chalk.blueBright(String(result.reportPath))}`);
+  if (history.length > 0) {
+    lines.push("", `  ${chalk.bold.cyan("Recent History:")}`);
+    for (const entry of history.slice(-3).reverse()) {
+      lines.push(`    ${chalk.dim(entry.timestamp)}  ${chalk.white(entry.message)}`);
+    }
   }
 
   lines.push("");
   return lines.join("\n");
+}
+
+export function formatAutoresearchList(data: Record<string, unknown>): string {
+  const tracks =
+    (data.tracks as Array<{
+      trackId: string;
+      title: string;
+      status: string;
+      updatedAt: string;
+      candidateCount: number;
+      pendingPromotionCount: number;
+    }>) ?? [];
+
+  if (!tracks.length) {
+    return `\n${header("Autoresearch Tracks")}\n${divider()}\n  ${chalk.dim("No tracks found.")}\n`;
+  }
+
+  const table = new Table({
+    head: ["Track", "Status", "Candidates", "Pending", "Updated"],
+    style: { head: ["cyan"] },
+  });
+  for (const track of tracks) {
+    table.push([
+      chalk.cyan(track.trackId),
+      formatTrackStatus(track.status),
+      String(track.candidateCount),
+      String(track.pendingPromotionCount),
+      chalk.dim(track.updatedAt),
+    ]);
+  }
+
+  return `\n${header("Autoresearch Tracks")}\n${divider()}\n${table.toString()}\n`;
 }

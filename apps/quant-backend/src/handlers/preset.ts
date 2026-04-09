@@ -2,13 +2,19 @@
  * Preset handler — hardcoded strategy presets for demo.
  */
 
+import { resolveInstrument } from "../market/instruments";
+
 interface PresetDetail {
   id: string;
   name: string;
   description: string;
   strategy: string;
-  market: string;
+  assetClass: string;
+  marketRegion: string;
+  venue: string;
+  provider: string;
   symbols: string[];
+  instruments: unknown[];
   params: Record<string, unknown>;
   paramRanges: Record<string, { min: number; max: number; step?: number }>;
   costConfig?: Record<string, unknown>;
@@ -21,8 +27,20 @@ const PRESETS: PresetDetail[] = [
     name: "TON Momentum",
     description: "SMA crossover momentum strategy for TON/USDT",
     strategy: "momentum",
-    market: "ton",
+    assetClass: "crypto",
+    marketRegion: "ton",
+    venue: "stonfi",
+    provider: "stonfi",
     symbols: ["TON/USDT"],
+    instruments: [
+      resolveInstrument({
+        symbol: "TON/USDT",
+        assetClass: "crypto",
+        marketRegion: "ton",
+        venue: "stonfi",
+        provider: "stonfi",
+      }),
+    ],
     params: {
       fast_period: 10,
       slow_period: 30,
@@ -42,8 +60,20 @@ const PRESETS: PresetDetail[] = [
     name: "TON Conservative",
     description: "Slow SMA crossover with tight risk control",
     strategy: "momentum",
-    market: "ton",
+    assetClass: "crypto",
+    marketRegion: "ton",
+    venue: "stonfi",
+    provider: "stonfi",
     symbols: ["TON/USDT"],
+    instruments: [
+      resolveInstrument({
+        symbol: "TON/USDT",
+        assetClass: "crypto",
+        marketRegion: "ton",
+        venue: "stonfi",
+        provider: "stonfi",
+      }),
+    ],
     params: {
       fast_period: 20,
       slow_period: 50,
@@ -63,8 +93,20 @@ const PRESETS: PresetDetail[] = [
     name: "TON Aggressive",
     description: "Fast SMA crossover for short-term momentum",
     strategy: "momentum",
-    market: "ton",
+    assetClass: "crypto",
+    marketRegion: "ton",
+    venue: "stonfi",
+    provider: "stonfi",
     symbols: ["TON/USDT"],
+    instruments: [
+      resolveInstrument({
+        symbol: "TON/USDT",
+        assetClass: "crypto",
+        marketRegion: "ton",
+        venue: "stonfi",
+        provider: "stonfi",
+      }),
+    ],
     params: {
       fast_period: 5,
       slow_period: 15,
@@ -78,6 +120,105 @@ const PRESETS: PresetDetail[] = [
       borrowRateAnnual: 0,
     },
     thesis: "Capture short-term price moves with higher trade frequency",
+  },
+  {
+    id: "momentum-aapl",
+    name: "AAPL Momentum",
+    description: "SMA crossover momentum strategy for AAPL",
+    strategy: "momentum",
+    assetClass: "equity",
+    marketRegion: "us",
+    venue: "nasdaq",
+    provider: "yfinance",
+    symbols: ["AAPL"],
+    instruments: [
+      resolveInstrument({
+        symbol: "AAPL",
+        assetClass: "equity",
+        marketRegion: "us",
+        venue: "nasdaq",
+        provider: "yfinance",
+      }),
+    ],
+    params: {
+      fast_period: 20,
+      slow_period: 50,
+    },
+    paramRanges: {
+      fast_period: { min: 10, max: 30, step: 5 },
+      slow_period: { min: 40, max: 80, step: 5 },
+    },
+    costConfig: {
+      slippage: { model: "percentage", value: 0.0005 },
+      borrowRateAnnual: 0,
+    },
+    thesis: "Capture medium-term momentum in mega-cap US equities.",
+  },
+  {
+    id: "momentum-0700-hk",
+    name: "Tencent Momentum",
+    description: "SMA crossover momentum strategy for Tencent Holdings",
+    strategy: "momentum",
+    assetClass: "equity",
+    marketRegion: "hk",
+    venue: "hkex",
+    provider: "openbb",
+    symbols: ["0700"],
+    instruments: [
+      resolveInstrument({
+        symbol: "0700",
+        assetClass: "equity",
+        marketRegion: "hk",
+        venue: "hkex",
+        provider: "openbb",
+      }),
+    ],
+    params: {
+      fast_period: 15,
+      slow_period: 45,
+    },
+    paramRanges: {
+      fast_period: { min: 10, max: 30, step: 5 },
+      slow_period: { min: 30, max: 80, step: 5 },
+    },
+    costConfig: {
+      slippage: { model: "percentage", value: 0.0008 },
+      borrowRateAnnual: 0,
+    },
+    thesis: "Capture medium-term momentum in liquid Hong Kong internet bellwethers.",
+  },
+  {
+    id: "momentum-600519-cn",
+    name: "Kweichow Moutai Momentum",
+    description: "SMA crossover momentum strategy for Kweichow Moutai",
+    strategy: "momentum",
+    assetClass: "equity",
+    marketRegion: "cn",
+    venue: "sse",
+    provider: "openbb",
+    symbols: ["600519"],
+    instruments: [
+      resolveInstrument({
+        symbol: "600519",
+        assetClass: "equity",
+        marketRegion: "cn",
+        venue: "sse",
+        provider: "openbb",
+      }),
+    ],
+    params: {
+      fast_period: 20,
+      slow_period: 60,
+    },
+    paramRanges: {
+      fast_period: { min: 10, max: 30, step: 5 },
+      slow_period: { min: 40, max: 100, step: 10 },
+    },
+    costConfig: {
+      slippage: { model: "percentage", value: 0.0007 },
+      borrowRateAnnual: 0,
+    },
+    thesis: "Track momentum persistence in high-quality A-share leaders on the main board.",
   },
 ];
 

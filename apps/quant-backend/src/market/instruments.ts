@@ -1,0 +1,223 @@
+export type AssetClass = "crypto" | "equity" | "bond";
+export type MarketRegion = "ton" | "us" | "hk" | "cn";
+export type VenueCode = "stonfi" | "nyse" | "nasdaq" | "hkex" | "sse" | "szse" | "cibm";
+export type ProviderCode = "synthetic" | "stonfi" | "tonapi" | "yfinance" | "openbb";
+export type CalendarId = "24-7" | "XNYS" | "XNAS" | "XHKG" | "XSHG" | "XSHE" | "CIBM";
+
+export interface InstrumentRefLike {
+  id: string;
+  assetClass: AssetClass;
+  marketRegion: MarketRegion;
+  venue: VenueCode;
+  displaySymbol: string;
+  providerSymbols: Partial<Record<ProviderCode, string>>;
+  quoteCurrency: string;
+  timezone: string;
+  calendarId: CalendarId;
+}
+
+interface MarketDefaults {
+  quoteCurrency: string;
+  timezone: string;
+  calendarId: CalendarId;
+  defaultVenue: VenueCode;
+  defaultProvider: ProviderCode;
+}
+
+function marketDefaultsFor(
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+): MarketDefaults | undefined {
+  if (assetClass === "crypto" && marketRegion === "ton") {
+    return {
+      quoteCurrency: "USD",
+      timezone: "UTC",
+      calendarId: "24-7",
+      defaultVenue: "stonfi",
+      defaultProvider: "stonfi",
+    };
+  }
+  if (assetClass === "equity" && marketRegion === "us") {
+    return {
+      quoteCurrency: "USD",
+      timezone: "America/New_York",
+      calendarId: "XNYS",
+      defaultVenue: "nyse",
+      defaultProvider: "yfinance",
+    };
+  }
+  if (assetClass === "equity" && marketRegion === "hk") {
+    return {
+      quoteCurrency: "HKD",
+      timezone: "Asia/Hong_Kong",
+      calendarId: "XHKG",
+      defaultVenue: "hkex",
+      defaultProvider: "openbb",
+    };
+  }
+  if (assetClass === "equity" && marketRegion === "cn") {
+    return {
+      quoteCurrency: "CNY",
+      timezone: "Asia/Shanghai",
+      calendarId: "XSHG",
+      defaultVenue: "sse",
+      defaultProvider: "openbb",
+    };
+  }
+  if (assetClass === "bond" && marketRegion === "cn") {
+    return {
+      quoteCurrency: "CNY",
+      timezone: "Asia/Shanghai",
+      calendarId: "CIBM",
+      defaultVenue: "cibm",
+      defaultProvider: "openbb",
+    };
+  }
+  return undefined;
+}
+
+function assertVenueAllowed(
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+  venue: VenueCode,
+): void {
+  if (assetClass === "crypto" && !(marketRegion === "ton" && venue === "stonfi")) {
+    throw new Error(`Unsupported crypto venue '${venue}' for market '${marketRegion}'.`);
+  }
+  if (
+    assetClass === "equity" &&
+    !(
+      (marketRegion === "us" && (venue === "nyse" || venue === "nasdaq")) ||
+      (marketRegion === "hk" && venue === "hkex") ||
+      (marketRegion === "cn" && (venue === "sse" || venue === "szse"))
+    )
+  ) {
+    throw new Error(`Unsupported equity venue '${venue}' for market '${marketRegion}'.`);
+  }
+  if (assetClass === "bond" && !(marketRegion === "cn" && venue === "cibm")) {
+    throw new Error(`Unsupported bond venue '${venue}' for market '${marketRegion}'.`);
+  }
+}
+
+function normalizeSymbolForProvider(
+  symbol: string,
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+  venue: VenueCode,
+  provider: ProviderCode,
+): string {
+  const trimmed = symbol.trim().toUpperCase();
+  if (provider === "synthetic") return trimmed;
+  if (assetClass === "crypto" && marketRegion === "ton") {
+    if (provider === "stonfi" || provider === "tonapi") return trimmed;
+    return trimmed.replace(/\//g, "-");
+  }
+  if (assetClass === "equity" && marketRegion === "hk") {
+    return /^\d+$/.test(trimmed) ? `${trimmed.padStart(4, "0")}.HK` : trimmed;
+  }
+  if (assetClass === "equity" && marketRegion === "cn" && /^\d{6}$/.test(trimmed)) {
+    return venue === "sse" ? `${trimmed}.SS` : `${trimmed}.SZ`;
+  }
+  return trimmed;
+}
+
+export function resolveInstrument(input: {
+  symbol: string;
+  assetClass: AssetClass;
+  marketRegion: MarketRegion;
+  venue?: VenueCode;
+  provider?: ProviderCode;
+}): InstrumentRefLike {
+  const defaults = marketDefaultsFor(input.assetClass, input.marketRegion);
+  if (!defaults) {
+    throw new Error(
+      `Provider stub only: unsupported market combination ${input.assetClass}/${input.marketRegion}.`,
+    );
+  }
+  const venue = input.venue ?? defaults.defaultVenue;
+  const provider = input.provider ?? defaults.defaultProvider;
+  assertVenueAllowed(input.assetClass, input.marketRegion, venue);
+  const displaySymbol = input.symbol.trim().toUpperCase();
+
+  return {
+    id: [
+      input.assetClass,
+      input.marketRegion,
+      venue,
+      displaySymbol.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    ].join(":"),
+    assetClass: input.assetClass,
+    marketRegion: input.marketRegion,
+    venue,
+    displaySymbol,
+    providerSymbols: {
+      synthetic: normalizeSymbolForProvider(
+        displaySymbol,
+        input.assetClass,
+        input.marketRegion,
+        venue,
+        "synthetic",
+      ),
+      [provider]: normalizeSymbolForProvider(
+        displaySymbol,
+        input.assetClass,
+        input.marketRegion,
+        venue,
+        provider,
+      ),
+    },
+    quoteCurrency: defaults.quoteCurrency,
+    timezone: defaults.timezone,
+    calendarId: defaults.calendarId,
+  };
+}
+
+export function resolveInstrumentsFromInput(input: Record<string, unknown>): InstrumentRefLike[] {
+  const supplied = input.instruments as InstrumentRefLike[] | undefined;
+  if (supplied && supplied.length > 0) {
+    return supplied;
+  }
+
+  const symbols = ((input.symbols as string[] | undefined) ?? []).map((symbol) =>
+    symbol.trim().toUpperCase(),
+  );
+  const assetClass = (input.assetClass as AssetClass | undefined) ?? "crypto";
+  const marketRegion = (input.marketRegion as MarketRegion | undefined) ?? "ton";
+  const venue = input.venue as VenueCode | undefined;
+  const provider = input.provider as ProviderCode | undefined;
+
+  if (symbols.length === 0) {
+    throw new Error("Expected symbols or instruments.");
+  }
+
+  return symbols.map((symbol) =>
+    resolveInstrument({
+      symbol,
+      assetClass,
+      marketRegion,
+      venue,
+      provider,
+    }),
+  );
+}
+
+export function providerForInstrument(instrument: InstrumentRefLike): ProviderCode {
+  if (instrument.assetClass === "crypto" && instrument.marketRegion === "ton") {
+    return "synthetic";
+  }
+  if (
+    instrument.assetClass === "equity" &&
+    (instrument.marketRegion === "us" ||
+      instrument.marketRegion === "hk" ||
+      instrument.marketRegion === "cn")
+  ) {
+    return "synthetic";
+  }
+  throw new Error(
+    `Provider stub only: no market-data provider implemented for ${instrument.assetClass}/${instrument.marketRegion}/${instrument.venue}.`,
+  );
+}
+
+export function annualizationBasisForInstrument(instrument: InstrumentRefLike): number {
+  return instrument.calendarId === "24-7" ? 365 : 252;
+}

@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "bun run --filter tonquant dev",
     "build": "bun run --filter tonquant build",
-    "typecheck": "tsc -b packages/core/tsconfig.json apps/cli/tsconfig.json",
+    "typecheck": "tsc -b packages/core/tsconfig.json apps/cli/tsconfig.json apps/quant-backend/tsconfig.json",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "bun test --max-concurrency 1 --path-ignore-patterns '_ref/**'",

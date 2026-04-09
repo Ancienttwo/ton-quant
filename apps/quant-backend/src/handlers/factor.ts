@@ -3,14 +3,12 @@
  * Includes data point minimum validation per eng review #7.
  */
 
-interface OHLCVBar {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
+import { generateDatasetDocument, type OhlcvBar, readDatasetDocument } from "../market/datasets";
+import {
+  annualizationBasisForInstrument,
+  type InstrumentRefLike,
+  resolveInstrumentsFromInput,
+} from "../market/instruments";
 
 const FACTOR_REGISTRY: Record<
   string,
@@ -62,14 +60,24 @@ function computeRSI(closes: number[], period = 14): number {
   let gains = 0;
   let losses = 0;
   for (let i = 1; i <= period; i++) {
-    const diff = closes[i] - closes[i - 1];
+    const current = closes[i];
+    const previous = closes[i - 1];
+    if (current == null || previous == null) {
+      throw new Error("RSI window is missing closing prices.");
+    }
+    const diff = current - previous;
     if (diff > 0) gains += diff;
     else losses -= diff;
   }
   let avgGain = gains / period;
   let avgLoss = losses / period;
   for (let i = period + 1; i < closes.length; i++) {
-    const diff = closes[i] - closes[i - 1];
+    const current = closes[i];
+    const previous = closes[i - 1];
+    if (current == null || previous == null) {
+      throw new Error("RSI smoothing window is missing closing prices.");
+    }
+    const diff = current - previous;
     avgGain = (avgGain * (period - 1) + Math.max(diff, 0)) / period;
     avgLoss = (avgLoss * (period - 1) + Math.max(-diff, 0)) / period;
   }
@@ -90,19 +98,37 @@ function computeMACD(
     );
   }
   const ema = (data: number[], period: number): number[] => {
+    const first = data[0];
+    if (first == null) {
+      throw new Error("MACD requires at least one closing price.");
+    }
     const k = 2 / (period + 1);
-    const result = [data[0]];
+    const result = [first];
     for (let i = 1; i < data.length; i++) {
-      result.push(data[i] * k + result[i - 1] * (1 - k));
+      const current = data[i];
+      const previous = result[i - 1];
+      if (current == null || previous == null) {
+        throw new Error("EMA series is missing a data point.");
+      }
+      result.push(current * k + previous * (1 - k));
     }
     return result;
   };
   const emaFast = ema(closes, fast);
   const emaSlow = ema(closes, slow);
-  const macdLine = emaFast.map((v, i) => v - emaSlow[i]);
+  const macdLine = emaFast.map((value, index) => {
+    const slowValue = emaSlow[index];
+    if (slowValue == null) {
+      throw new Error("MACD slow EMA is missing a data point.");
+    }
+    return value - slowValue;
+  });
   const signalLine = ema(macdLine.slice(slow - 1), signal);
   const lastMacd = macdLine[macdLine.length - 1];
   const lastSignal = signalLine[signalLine.length - 1];
+  if (lastMacd == null || lastSignal == null) {
+    throw new Error("MACD computation did not produce a final value.");
+  }
   return {
     macd: Number(lastMacd.toFixed(6)),
     signal: Number(lastSignal.toFixed(6)),
@@ -110,7 +136,7 @@ function computeMACD(
   };
 }
 
-function computeVolatility(closes: number[], period = 20): number {
+function computeVolatility(closes: number[], period = 20, annualizationBasis = 252): number {
   if (closes.length < period + 1) {
     throw new Error(
       `Volatility(${period}) requires at least ${period + 1} data points, got ${closes.length}`,
@@ -118,11 +144,16 @@ function computeVolatility(closes: number[], period = 20): number {
   }
   const returns: number[] = [];
   for (let i = closes.length - period; i < closes.length; i++) {
-    returns.push(Math.log(closes[i] / closes[i - 1]));
+    const current = closes[i];
+    const previous = closes[i - 1];
+    if (current == null || previous == null) {
+      throw new Error("Volatility window is missing closing prices.");
+    }
+    returns.push(Math.log(current / previous));
   }
   const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
   const variance = returns.reduce((sum, r) => sum + (r - mean) ** 2, 0) / (returns.length - 1);
-  return Number((Math.sqrt(variance) * Math.sqrt(252) * 100).toFixed(2));
+  return Number((Math.sqrt(variance) * Math.sqrt(annualizationBasis) * 100).toFixed(2));
 }
 
 function computeSMA(closes: number[], period = 20): number {
@@ -141,41 +172,49 @@ function computeVolumeRatio(volumes: number[], period = 20): number {
   }
   const avgVolume = volumes.slice(-period).reduce((a, b) => a + b, 0) / period;
   const current = volumes[volumes.length - 1];
+  if (current == null) {
+    throw new Error("Volume ratio requires at least one volume observation.");
+  }
   return avgVolume > 0 ? Number((current / avgVolume).toFixed(2)) : 0;
 }
 
-function loadDataset(input: Record<string, unknown>): OHLCVBar[] {
+function loadDataset(input: Record<string, unknown>): {
+  bars: OhlcvBar[];
+  annualizationBasis: number;
+  instrument: InstrumentRefLike;
+} {
   const datasetPath = input.datasetPath as string | undefined;
   if (datasetPath) {
     try {
-      const raw = require("node:fs").readFileSync(datasetPath, "utf-8");
-      return JSON.parse(raw) as OHLCVBar[];
+      const dataset = readDatasetDocument(datasetPath);
+      return {
+        bars: dataset.bars,
+        annualizationBasis: dataset.tradingDaysPerYear,
+        instrument: dataset.instrument,
+      };
     } catch {
       throw new Error(`Failed to read dataset at ${datasetPath}`);
     }
   }
-  // If no dataset path, generate synthetic data
-  const _symbols = (input.symbols as string[]) ?? ["TON/USDT"];
-  // Return synthetic bars for first symbol
-  const days = 90;
-  const bars: OHLCVBar[] = [];
-  let price = 3.5;
-  const start = new Date(Date.now() - days * 86400_000);
-  for (let i = 0; i < days; i++) {
-    const date = new Date(start.getTime() + i * 86400_000).toISOString().slice(0, 10);
-    const change = (Math.random() - 0.48) * 0.06;
-    const open = price;
-    price *= 1 + change;
-    bars.push({
-      date,
-      open: Number(open.toFixed(6)),
-      high: Number((Math.max(open, price) * 1.01).toFixed(6)),
-      low: Number((Math.min(open, price) * 0.99).toFixed(6)),
-      close: Number(price.toFixed(6)),
-      volume: Math.round(1_000_000 + Math.random() * 5_000_000),
-    });
+  const instruments = resolveInstrumentsFromInput(input);
+  if (instruments.length !== 1) {
+    throw new Error("Factor compute currently supports exactly one instrument at a time.");
   }
-  return bars;
+  const instrument = instruments[0];
+  if (!instrument) {
+    throw new Error("Expected one resolved instrument.");
+  }
+  const dataset = generateDatasetDocument({
+    instrument,
+    interval: "1d",
+    startDate: input.startDate as string | undefined,
+    endDate: input.endDate as string | undefined,
+  });
+  return {
+    bars: dataset.bars,
+    annualizationBasis: annualizationBasisForInstrument(instrument),
+    instrument,
+  };
 }
 
 export function handleFactorList(_input: Record<string, unknown>): Record<string, unknown> {
@@ -200,7 +239,16 @@ export function handleFactorList(_input: Record<string, unknown>): Record<string
 
 export function handleFactorCompute(input: Record<string, unknown>): Record<string, unknown> {
   const factorIds = (input.factors as string[]) ?? ["rsi"];
-  const bars = loadDataset(input);
+  const dataset = loadDataset(input);
+  const instruments =
+    (input.instruments as Array<{ displaySymbol: string }> | undefined)?.length ||
+    (input.symbols as string[] | undefined)?.length
+      ? resolveInstrumentsFromInput(input)
+      : [dataset.instrument];
+  if (instruments.length !== 1) {
+    throw new Error("Factor compute currently supports exactly one instrument at a time.");
+  }
+  const bars = dataset.bars;
   const closes = bars.map((b) => b.close);
   const volumes = bars.map((b) => b.volume);
   const outputDir = input.outputDir as string | undefined;
@@ -233,7 +281,7 @@ export function handleFactorCompute(input: Record<string, unknown>): Record<stri
         break;
       }
       case "volatility":
-        results.volatility = computeVolatility(closes);
+        results.volatility = computeVolatility(closes, 20, dataset.annualizationBasis);
         columns.push("volatility");
         break;
       case "sma_20":
@@ -262,7 +310,7 @@ export function handleFactorCompute(input: Record<string, unknown>): Record<stri
       : [],
     datasetRows: bars.length,
     factorCount: factorIds.length,
-    symbolCount: 1,
+    symbolCount: instruments.length,
     factorColumns: columns,
     ...results,
   };

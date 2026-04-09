@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-// @ts-expect-error — quant-backend is standalone, not in tsconfig
+// @ts-expect-error - backend fixtures are runtime-tested outside the CLI tsconfig boundary
 import {
   handleDataFetch,
   handleDataInfo,
   handleDataList,
-} from "../../../../quant-backend/src/handlers/data.ts";
+} from "../../../../quant-backend/src/handlers/data";
 
 describe("data handler", () => {
   test("handleDataFetch generates 90 bars by default", () => {
@@ -45,5 +45,35 @@ describe("data handler", () => {
     const dataset = result.dataset as { symbol: string; interval: string };
     expect(dataset.symbol).toBe("TON/USDT");
     expect(dataset.interval).toBe("1d");
+  });
+
+  test("handleDataFetch resolves HK equities onto HKEX", () => {
+    const result = handleDataInfo({
+      symbol: "0700",
+      assetClass: "equity",
+      marketRegion: "hk",
+    });
+    const dataset = result.dataset as {
+      symbol: string;
+      instrument: { marketRegion: string; venue: string };
+    };
+    expect(dataset.symbol).toBe("0700");
+    expect(dataset.instrument.marketRegion).toBe("hk");
+    expect(dataset.instrument.venue).toBe("hkex");
+  });
+
+  test("handleDataFetch resolves A-shares onto SSE by default", () => {
+    const result = handleDataInfo({
+      symbol: "600519",
+      assetClass: "equity",
+      marketRegion: "cn",
+    });
+    const dataset = result.dataset as {
+      symbol: string;
+      instrument: { marketRegion: string; venue: string };
+    };
+    expect(dataset.symbol).toBe("600519");
+    expect(dataset.instrument.marketRegion).toBe("cn");
+    expect(dataset.instrument.venue).toBe("sse");
   });
 });

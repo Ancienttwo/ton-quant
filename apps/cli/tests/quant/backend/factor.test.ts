@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-// @ts-expect-error — quant-backend is standalone, not in tsconfig
+// @ts-expect-error - backend fixtures are runtime-tested outside the CLI tsconfig boundary
 import {
   handleFactorCompute,
   handleFactorList,
-} from "../../../../quant-backend/src/handlers/factor.ts";
+} from "../../../../quant-backend/src/handlers/factor";
 
 describe("factor handler", () => {
   describe("handleFactorList", () => {

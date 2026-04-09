@@ -3,14 +3,12 @@
  * Supports position sizing, slippage, and basic performance metrics.
  */
 
-interface OHLCVBar {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
+import { generateDatasetDocument, type OhlcvBar, readDatasetDocument } from "../market/datasets";
+import {
+  annualizationBasisForInstrument,
+  type InstrumentRefLike,
+  resolveInstrumentsFromInput,
+} from "../market/instruments";
 
 interface BacktestTrade {
   entryDate: string;
@@ -21,37 +19,44 @@ interface BacktestTrade {
   side: "long" | "short";
 }
 
-function loadBars(input: Record<string, unknown>): OHLCVBar[] {
+function loadBars(input: Record<string, unknown>): {
+  bars: OhlcvBar[];
+  annualizationBasis: number;
+  instrument: InstrumentRefLike;
+} {
   const datasetPath = input.datasetPath as string | undefined;
   if (datasetPath) {
     try {
-      const raw = require("node:fs").readFileSync(datasetPath, "utf-8");
-      return JSON.parse(raw) as OHLCVBar[];
+      const dataset = readDatasetDocument(datasetPath);
+      return {
+        bars: dataset.bars,
+        annualizationBasis: dataset.tradingDaysPerYear,
+        instrument: dataset.instrument,
+      };
     } catch {
       throw new Error(`Failed to read dataset at ${datasetPath}`);
     }
   }
 
-  // Generate synthetic data
-  const days = 90;
-  const bars: OHLCVBar[] = [];
-  let price = 3.5;
-  const start = new Date(Date.now() - days * 86400_000);
-  for (let i = 0; i < days; i++) {
-    const date = new Date(start.getTime() + i * 86400_000).toISOString().slice(0, 10);
-    const change = (Math.random() - 0.48) * 0.06;
-    const open = price;
-    price *= 1 + change;
-    bars.push({
-      date,
-      open: Number(open.toFixed(6)),
-      high: Number((Math.max(open, price) * 1.01).toFixed(6)),
-      low: Number((Math.min(open, price) * 0.99).toFixed(6)),
-      close: Number(price.toFixed(6)),
-      volume: Math.round(1_000_000 + Math.random() * 5_000_000),
-    });
+  const instruments = resolveInstrumentsFromInput(input);
+  if (instruments.length !== 1) {
+    throw new Error("Backtest currently supports exactly one instrument at a time.");
   }
-  return bars;
+  const instrument = instruments[0];
+  if (!instrument) {
+    throw new Error("Expected one resolved instrument.");
+  }
+  const dataset = generateDatasetDocument({
+    instrument,
+    interval: "1d",
+    startDate: input.startDate as string | undefined,
+    endDate: input.endDate as string | undefined,
+  });
+  return {
+    bars: dataset.bars,
+    annualizationBasis: annualizationBasisForInstrument(instrument),
+    instrument,
+  };
 }
 
 function computeSMA(closes: number[], period: number): (number | null)[] {
@@ -63,7 +68,7 @@ function computeSMA(closes: number[], period: number): (number | null)[] {
 }
 
 function runMomentumStrategy(
-  bars: OHLCVBar[],
+  bars: OhlcvBar[],
   params: Record<string, unknown>,
 ): { trades: BacktestTrade[]; equity: number[] } {
   const fastPeriod = (params.fast_period as number) ?? 10;
@@ -87,28 +92,32 @@ function runMomentumStrategy(
   let position: { entryDate: string; entryPrice: number; shares: number } | null = null;
 
   for (let i = 0; i < bars.length; i++) {
+    const bar = bars[i];
+    if (!bar) {
+      continue;
+    }
     const fast = fastSMA[i];
     const slow = slowSMA[i];
 
-    if (fast === null || slow === null) {
+    if (fast == null || slow == null) {
       equity.push(capital);
       continue;
     }
 
     // Entry: fast crosses above slow
     if (!position && fast > slow) {
-      const entryPrice = bars[i].close * (1 + slippagePct);
+      const entryPrice = bar.close * (1 + slippagePct);
       const shares = capital / entryPrice;
-      position = { entryDate: bars[i].date, entryPrice, shares };
+      position = { entryDate: bar.date, entryPrice, shares };
     }
     // Exit: fast crosses below slow
     else if (position && fast < slow) {
-      const exitPrice = bars[i].close * (1 - slippagePct);
+      const exitPrice = bar.close * (1 - slippagePct);
       const proceeds = position.shares * exitPrice;
       const returnPct = (exitPrice - position.entryPrice) / position.entryPrice;
       trades.push({
         entryDate: position.entryDate,
-        exitDate: bars[i].date,
+        exitDate: bar.date,
         entryPrice: Number(position.entryPrice.toFixed(6)),
         exitPrice: Number(exitPrice.toFixed(6)),
         returnPct: Number(returnPct.toFixed(4)),
@@ -119,17 +128,18 @@ function runMomentumStrategy(
     }
 
     // Mark-to-market
-    const mtm = position ? position.shares * bars[i].close : capital;
+    const mtm = position ? position.shares * bar.close : capital;
     equity.push(Number(mtm.toFixed(2)));
   }
 
   // Close open position at end
-  if (position) {
-    const exitPrice = bars[bars.length - 1].close * (1 - slippagePct);
+  const lastBar = bars[bars.length - 1];
+  if (position && lastBar) {
+    const exitPrice = lastBar.close * (1 - slippagePct);
     const proceeds = position.shares * exitPrice;
     trades.push({
       entryDate: position.entryDate,
-      exitDate: bars[bars.length - 1].date,
+      exitDate: lastBar.date,
       entryPrice: Number(position.entryPrice.toFixed(6)),
       exitPrice: Number(exitPrice.toFixed(6)),
       returnPct: Number(((exitPrice - position.entryPrice) / position.entryPrice).toFixed(4)),
@@ -141,7 +151,14 @@ function runMomentumStrategy(
   return { trades, equity };
 }
 
-function computeMetrics(equity: number[], trades: BacktestTrade[]): Record<string, number> {
+function computeMetrics(
+  equity: number[],
+  trades: BacktestTrade[],
+  annualizationBasis: number,
+): Record<string, number> {
+  if (equity.length === 0) {
+    throw new Error("Expected backtest equity series to contain at least one value.");
+  }
   const initialCapital = equity[0] ?? 10_000;
   const finalCapital = equity[equity.length - 1] ?? initialCapital;
   const totalReturn = (finalCapital - initialCapital) / initialCapital;
@@ -149,7 +166,12 @@ function computeMetrics(equity: number[], trades: BacktestTrade[]): Record<strin
   // Daily returns
   const dailyReturns: number[] = [];
   for (let i = 1; i < equity.length; i++) {
-    dailyReturns.push((equity[i] - equity[i - 1]) / equity[i - 1]);
+    const current = equity[i];
+    const previous = equity[i - 1];
+    if (current == null || previous == null) {
+      throw new Error("Expected adjacent equity points for daily return calculation.");
+    }
+    dailyReturns.push((current - previous) / previous);
   }
 
   // Sharpe ratio (annualized)
@@ -157,10 +179,14 @@ function computeMetrics(equity: number[], trades: BacktestTrade[]): Record<strin
   const stdDev = Math.sqrt(
     dailyReturns.reduce((sum, r) => sum + (r - meanReturn) ** 2, 0) / (dailyReturns.length - 1),
   );
-  const sharpe = stdDev > 0 ? (meanReturn / stdDev) * Math.sqrt(252) : 0;
+  const sharpe = stdDev > 0 ? (meanReturn / stdDev) * Math.sqrt(annualizationBasis) : 0;
 
   // Max drawdown
-  let peak = equity[0];
+  const firstEquity = equity[0];
+  if (firstEquity == null) {
+    throw new Error("Expected the first equity point to be present.");
+  }
+  let peak = firstEquity;
   let maxDrawdown = 0;
   for (const value of equity) {
     if (value > peak) peak = value;
@@ -173,7 +199,7 @@ function computeMetrics(equity: number[], trades: BacktestTrade[]): Record<strin
   const winRate = trades.length > 0 ? wins / trades.length : 0;
 
   // Calmar ratio
-  const annualizedReturn = totalReturn * (252 / equity.length);
+  const annualizedReturn = totalReturn * (annualizationBasis / equity.length);
   const calmar = maxDrawdown > 0 ? annualizedReturn / maxDrawdown : 0;
 
   // Sortino ratio
@@ -181,7 +207,7 @@ function computeMetrics(equity: number[], trades: BacktestTrade[]): Record<strin
   const downDev = Math.sqrt(
     negReturns.reduce((sum, r) => sum + r ** 2, 0) / Math.max(negReturns.length, 1),
   );
-  const sortino = downDev > 0 ? (meanReturn / downDev) * Math.sqrt(252) : 0;
+  const sortino = downDev > 0 ? (meanReturn / downDev) * Math.sqrt(annualizationBasis) : 0;
 
   // Max consecutive loss days
   let maxLossDays = 0;
@@ -217,7 +243,16 @@ export function handleBacktest(input: Record<string, unknown>): Record<string, u
     throw new Error(`Unknown strategy: ${strategy}. Available: momentum`);
   }
 
-  const bars = loadBars(input);
+  const dataset = loadBars(input);
+  const instruments =
+    (input.instruments as Array<{ displaySymbol: string }> | undefined)?.length ||
+    (input.symbols as string[] | undefined)?.length
+      ? resolveInstrumentsFromInput(input)
+      : [dataset.instrument];
+  if (instruments.length !== 1) {
+    throw new Error("Backtest currently supports exactly one instrument at a time.");
+  }
+  const bars = dataset.bars;
   const { trades, equity } = runMomentumStrategy(bars, {
     ...params,
     initialCapital: input.initialCapital,
@@ -225,25 +260,37 @@ export function handleBacktest(input: Record<string, unknown>): Record<string, u
       ? ((input.costConfig as Record<string, unknown>).slippage as Record<string, unknown>).value
       : 0.001,
   });
-  const metrics = computeMetrics(equity, trades);
+  const metrics = computeMetrics(equity, trades, dataset.annualizationBasis);
 
   // Monthly returns
   const monthlyReturns: Record<string, number> = {};
   let lastMonth = "";
   let monthStart = equity[0];
   for (let i = 0; i < bars.length; i++) {
-    const month = bars[i].date.slice(0, 7);
+    const bar = bars[i];
+    if (!bar) {
+      continue;
+    }
+    const month = bar.date.slice(0, 7);
     if (month !== lastMonth && lastMonth) {
+      const previousEquity = equity[i - 1];
+      if (previousEquity == null || monthStart == null) {
+        throw new Error("Expected monthly equity boundary values to be present.");
+      }
       monthlyReturns[lastMonth] = Number(
-        (((equity[i - 1] - monthStart) / monthStart) * 100).toFixed(2),
+        (((previousEquity - monthStart) / monthStart) * 100).toFixed(2),
       );
-      monthStart = equity[i - 1];
+      monthStart = previousEquity;
     }
     lastMonth = month;
   }
   if (lastMonth) {
+    const finalEquity = equity[equity.length - 1];
+    if (finalEquity == null || monthStart == null) {
+      throw new Error("Expected final monthly equity values to be present.");
+    }
     monthlyReturns[lastMonth] = Number(
-      (((equity[equity.length - 1] - monthStart) / monthStart) * 100).toFixed(2),
+      (((finalEquity - monthStart) / monthStart) * 100).toFixed(2),
     );
   }
 

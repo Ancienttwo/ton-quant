@@ -28,6 +28,10 @@ describe("orchestrator", () => {
     });
     expect(result.data).not.toBeNull();
     const m = result.data?.metrics;
+    expect(m).toBeDefined();
+    if (!m) {
+      throw new Error("Expected orchestrator metrics to be defined");
+    }
     expect(typeof m.sharpe).toBe("number");
     expect(typeof m.totalReturn).toBe("number");
     expect(typeof m.maxDrawdown).toBe("number");

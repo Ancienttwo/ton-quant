@@ -6,5 +6,6 @@
     "outDir": "dist"
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["tests/quant/backend/**/*.ts"],
   "references": [{ "path": "../../packages/core" }]
 }

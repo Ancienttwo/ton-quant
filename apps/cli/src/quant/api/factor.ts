@@ -8,6 +8,7 @@ import {
   type FactorListResult,
   FactorListResultSchema,
 } from "../types/index.js";
+import { withResolvedInstruments } from "./request-market.js";
 import { invokeQuantCli, type RunQuantApiOptions } from "./shared.js";
 
 export async function runFactorList(
@@ -30,11 +31,12 @@ export async function runFactorCompute(
   options?: RunQuantApiOptions,
 ): Promise<FactorComputeResult> {
   const parsed = FactorComputeRequestSchema.parse(request);
+  const normalized = withResolvedInstruments(parsed);
   return invokeQuantCli(
     "factors",
     ["factor", "compute"],
-    parsed,
-    parsed,
+    normalized,
+    normalized,
     (raw) => FactorComputeResultSchema.parse(raw),
     options,
   );

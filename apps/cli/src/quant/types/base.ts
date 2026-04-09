@@ -6,8 +6,53 @@ export const TONQUANT_QUANT_ROOT = join(CONFIG_DIR, "quant");
 
 export const DateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "Expected YYYY-MM-DD");
 
-export const MarketCodeSchema = z.enum(["ton"]);
-export type MarketCode = z.infer<typeof MarketCodeSchema>;
+export const AssetClassSchema = z.enum(["crypto", "equity", "bond"]);
+export type AssetClass = z.infer<typeof AssetClassSchema>;
+
+export const MarketRegionSchema = z.enum(["ton", "us", "hk", "cn"]);
+export type MarketRegion = z.infer<typeof MarketRegionSchema>;
+
+export const VenueCodeSchema = z.enum(["stonfi", "nyse", "nasdaq", "hkex", "sse", "szse", "cibm"]);
+export type VenueCode = z.infer<typeof VenueCodeSchema>;
+
+export const ProviderCodeSchema = z.enum(["synthetic", "stonfi", "tonapi", "yfinance", "openbb"]);
+export type ProviderCode = z.infer<typeof ProviderCodeSchema>;
+
+export const CalendarIdSchema = z.enum(["24-7", "XNYS", "XNAS", "XHKG", "XSHG", "XSHE", "CIBM"]);
+export type CalendarId = z.infer<typeof CalendarIdSchema>;
+
+export const ProviderSymbolMapSchema = z.record(ProviderCodeSchema, z.string().min(1));
+export type ProviderSymbolMap = z.infer<typeof ProviderSymbolMapSchema>;
+
+export const InstrumentRefSchema = z.object({
+  id: z.string().min(1),
+  assetClass: AssetClassSchema,
+  marketRegion: MarketRegionSchema,
+  venue: VenueCodeSchema,
+  displaySymbol: z.string().min(1),
+  providerSymbols: ProviderSymbolMapSchema,
+  quoteCurrency: z.string().min(1),
+  timezone: z.string().min(1),
+  calendarId: CalendarIdSchema,
+});
+export type InstrumentRef = z.infer<typeof InstrumentRefSchema>;
+
+export const ExecutionVenueRefSchema = z.object({
+  broker: z.string().min(1),
+  marketRegion: MarketRegionSchema,
+  venue: VenueCodeSchema,
+});
+export type ExecutionVenueRef = z.infer<typeof ExecutionVenueRefSchema>;
+
+export const BrokerCapabilitiesSchema = z.object({
+  supportsEquities: z.boolean().default(false),
+  supportsCrypto: z.boolean().default(false),
+  supportsBonds: z.boolean().default(false),
+  supportsFractionalShares: z.boolean().default(false),
+  supportsShortSelling: z.boolean().default(false),
+  supportsRealtimeQuotes: z.boolean().default(false),
+});
+export type BrokerCapabilities = z.infer<typeof BrokerCapabilitiesSchema>;
 
 export const DataModeSchema = z.enum(["cached", "live", "derived"]);
 export type DataMode = z.infer<typeof DataModeSchema>;

@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { runFactorCompute, runFactorList } from "../quant/api/factor.js";
+import type { AssetClass, MarketRegion, ProviderCode, VenueCode } from "../quant/types/index.js";
 import { formatFactorCompute, formatFactorList } from "../utils/format-quant.js";
 import { handleCommand } from "../utils/output.js";
 import { registerFactorAlertCommands } from "./factor-alert.js";
@@ -9,6 +10,16 @@ import { registerFactorMarketplaceCommands } from "./factor-core.js";
 import { registerFactorReportCommands } from "./factor-report.js";
 import { registerFactorSeedCommands } from "./factor-seed.js";
 import { registerFactorSkillCommands } from "./factor-skill.js";
+
+interface FactorComputeOptions {
+  factors: string;
+  symbols?: string;
+  datasetPath?: string;
+  assetClass?: AssetClass;
+  marketRegion?: MarketRegion;
+  venue?: VenueCode;
+  provider?: ProviderCode;
+}
 
 export function registerFactorCommand(program: Command): void {
   const command = program.command("factor").description("Factor computation & marketplace");
@@ -24,17 +35,28 @@ export function registerFactorCommand(program: Command): void {
 
   command
     .command("compute")
-    .description("Compute factors on TON quant data")
+    .description("Compute factors on normalized quant data")
     .requiredOption("--factors <factors>", "Comma-separated factor IDs (rsi,macd,volatility)")
-    .option("--symbols <symbols>", "Comma-separated symbols", "TON/USDT")
-    .action(async (opts: { factors: string; symbols: string }) => {
+    .option("--symbols <symbols>", "Comma-separated symbols")
+    .option("--dataset-path <path>", "Use an existing normalized dataset file")
+    .option("--asset-class <assetClass>", "Asset class: crypto|equity|bond", "crypto")
+    .option("--market-region <marketRegion>", "Market region: ton|us|hk|cn", "ton")
+    .option("--venue <venue>", "Venue override (stonfi|nyse|nasdaq|hkex|sse|szse|cibm)")
+    .option("--provider <provider>", "Provider override (stonfi|tonapi|yfinance|openbb|synthetic)")
+    .action(async (opts: FactorComputeOptions) => {
       const json = program.opts().json ?? false;
+      const symbols = opts.symbols ? opts.symbols.split(",") : opts.datasetPath ? [] : ["TON/USDT"];
       await handleCommand(
         { json },
         () =>
           runFactorCompute({
-            symbols: opts.symbols.split(","),
+            symbols,
             factors: opts.factors.split(","),
+            datasetPath: opts.datasetPath,
+            assetClass: opts.assetClass,
+            marketRegion: opts.marketRegion,
+            venue: opts.venue,
+            provider: opts.provider,
           }),
         formatFactorCompute,
       );

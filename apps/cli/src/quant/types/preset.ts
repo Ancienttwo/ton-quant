@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { BacktestCostConfigSchema } from "./backtest.js";
-import { MarketCodeSchema, QuantParamValueSchema, QuantRunMetaSchema } from "./base.js";
+import {
+  AssetClassSchema,
+  InstrumentRefSchema,
+  MarketRegionSchema,
+  ProviderCodeSchema,
+  QuantParamValueSchema,
+  QuantRunMetaSchema,
+  VenueCodeSchema,
+} from "./base.js";
 
 export const StrategyParameterRangeSchema = z.object({
   min: z.number(),
@@ -18,8 +26,12 @@ export const PresetSummarySchema = z.object({
 export type PresetSummary = z.infer<typeof PresetSummarySchema>;
 
 export const PresetDetailSchema = PresetSummarySchema.extend({
-  market: MarketCodeSchema.default("ton"),
+  assetClass: AssetClassSchema,
+  marketRegion: MarketRegionSchema,
+  venue: VenueCodeSchema,
+  provider: ProviderCodeSchema,
   symbols: z.array(z.string().min(1)).default([]),
+  instruments: z.array(InstrumentRefSchema).default([]),
   params: z.record(z.string(), QuantParamValueSchema).default({}),
   paramRanges: z.record(z.string(), StrategyParameterRangeSchema).default({}),
   costConfig: BacktestCostConfigSchema.optional(),

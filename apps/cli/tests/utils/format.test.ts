@@ -18,6 +18,10 @@ import {
   formatTrending,
   greenRed,
 } from "../../src/utils/format.js";
+import {
+  formatAutoresearchList as formatQuantAutoresearchList,
+  formatAutoresearchResult as formatQuantAutoresearchResult,
+} from "../../src/utils/format-quant.js";
 
 describe("greenRed", () => {
   test("returns green-styled string for positive values", () => {
@@ -172,5 +176,70 @@ describe("formatResearch", () => {
     expect(result).toContain("NOT");
     expect(result).toContain("2850.00");
     expect(result).toContain("NOT/TON");
+  });
+});
+
+describe("formatAutoresearchResult", () => {
+  test("formats durable track metadata", () => {
+    const result = formatQuantAutoresearchResult({
+      status: "pending-review",
+      baseline: {
+        title: "TON Momentum",
+        strategy: "momentum",
+        symbols: ["TON/USDT"],
+        startDate: "2024-01-01",
+        endDate: "2024-03-31",
+      },
+      state: {
+        status: "pending-review",
+        latestRun: {
+          runId: "run-123",
+          status: "completed",
+          iterationsCompleted: 1,
+          iterationsRequested: 1,
+        },
+        bestCandidateId: null,
+        latestCandidateId: "run-123-1",
+      },
+      candidates: [
+        {
+          candidateId: "run-123-1",
+          status: "pending-review",
+          summary: "Recommendation BUY",
+        },
+      ],
+      history: [
+        {
+          timestamp: "2024-03-31T00:00:00.000Z",
+          message: "Run completed",
+        },
+      ],
+    });
+
+    expect(result).toContain("TON Momentum");
+    expect(result).toContain("run-123");
+    expect(result).toContain("run-123-1");
+    expect(result).toContain("Run completed");
+  });
+});
+
+describe("formatAutoresearchList", () => {
+  test("formats track summaries", () => {
+    const result = formatQuantAutoresearchList({
+      tracks: [
+        {
+          trackId: "track-1",
+          title: "TON Momentum",
+          status: "pending-review",
+          updatedAt: "2024-03-31T00:00:00.000Z",
+          candidateCount: 2,
+          pendingPromotionCount: 1,
+        },
+      ],
+    });
+
+    expect(result).toContain("track-1");
+    expect(result).toContain("2");
+    expect(result).toContain("1");
   });
 });

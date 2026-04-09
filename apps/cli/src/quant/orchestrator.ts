@@ -3,6 +3,7 @@
  * Fail-fast: any step failure stops the chain and writes a partial report.
  */
 
+import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runBacktest } from "./api/backtest.js";
@@ -11,16 +12,35 @@ import { runFactorCompute } from "./api/factor.js";
 import { runPresetShow } from "./api/preset.js";
 import type { RunQuantApiOptions } from "./api/shared.js";
 import { createAutoresearchRunDir, writeArtifactJson } from "./runner/artifact-manager.js";
-import type { ArtifactRef } from "./types/base.js";
+import type { BacktestCostConfig } from "./types/backtest.js";
+import type {
+  ArtifactRef,
+  AssetClass,
+  InstrumentRef,
+  MarketRegion,
+  ProviderCode,
+  VenueCode,
+} from "./types/base.js";
 
 export interface OrchestratorInput {
   asset: string;
-  period: string;
+  symbols?: string[];
+  instruments?: InstrumentRef[];
+  assetClass?: AssetClass;
+  marketRegion?: MarketRegion;
+  venue?: VenueCode;
+  provider?: ProviderCode;
+  period?: string;
   strategy: string;
   presetId?: string;
   iterations: number;
   factors: string[];
   outputDir?: string;
+  runId?: string;
+  startDate?: string;
+  endDate?: string;
+  params?: Record<string, string | number | boolean | null>;
+  costConfig?: BacktestCostConfig;
 }
 
 export interface OrchestratorStepResult {
@@ -31,6 +51,7 @@ export interface OrchestratorStepResult {
 }
 
 export interface OrchestratorOutput {
+  runId: string;
   status: "success" | "partial_failure" | "error";
   data: {
     reportPath: string;
@@ -78,6 +99,13 @@ function computeDateRange(period: string): { startDate: string; endDate: string 
   };
 }
 
+function resolveDateRange(input: OrchestratorInput): { startDate: string; endDate: string } {
+  if (input.startDate && input.endDate) {
+    return { startDate: input.startDate, endDate: input.endDate };
+  }
+  return computeDateRange(input.period ?? "90d");
+}
+
 function deriveRecommendation(sharpe: number, totalReturn: number): "buy" | "sell" | "hold" {
   if (sharpe > 1.0 && totalReturn > 0) return "buy";
   if (totalReturn < -5) return "sell";
@@ -98,7 +126,7 @@ function generateReport(
     ``,
     `> Generated: ${now}`,
     `> Asset: ${input.asset}`,
-    `> Period: ${input.period}`,
+    `> Period: ${input.period ?? `${input.startDate ?? "?"} → ${input.endDate ?? "?"}`}`,
     `> Strategy: ${input.strategy}`,
     ``,
     `## Summary`,
@@ -144,11 +172,12 @@ export async function runOrchestrator(
 ): Promise<OrchestratorOutput> {
   const steps: OrchestratorStepResult[] = [];
   const artifacts: ArtifactRef[] = [];
-  const { startDate, endDate } = computeDateRange(input.period);
-  const runDir = createAutoresearchRunDir(`orch-${Date.now()}`, input.outputDir);
-  const symbols = [input.asset.replace("/", "-")].map(() => input.asset);
+  const runId = input.runId ?? randomUUID();
+  const { startDate, endDate } = resolveDateRange(input);
+  const runDir = createAutoresearchRunDir(runId, input.outputDir);
+  const symbols = input.symbols?.length ? input.symbols : [input.asset];
 
-  let strategyParams: Record<string, string | number | boolean | null> = {};
+  let strategyParams: Record<string, string | number | boolean | null> = input.params ?? {};
 
   // Step 0: Load preset (optional)
   if (input.presetId) {
@@ -165,6 +194,7 @@ export async function runOrchestrator(
       steps.push({ step: "preset", status: "failed", summary: msg });
       const reportPath = generateReport(input, steps, null, runDir);
       return {
+        runId,
         status: "partial_failure",
         data: null,
         error: `Preset load failed: ${msg}`,
@@ -177,7 +207,19 @@ export async function runOrchestrator(
   // Step 1: Data fetch
   let datasetPath: string | undefined;
   try {
-    const dataResult = await runDataFetch({ symbols, startDate, endDate }, apiOptions);
+    const dataResult = await runDataFetch(
+      {
+        symbols,
+        instruments: input.instruments,
+        assetClass: input.assetClass,
+        marketRegion: input.marketRegion,
+        venue: input.venue,
+        provider: input.provider,
+        startDate,
+        endDate,
+      },
+      apiOptions,
+    );
     datasetPath = dataResult.artifacts[0]?.path;
     steps.push({
       step: "data_fetch",
@@ -189,6 +231,7 @@ export async function runOrchestrator(
     steps.push({ step: "data_fetch", status: "failed", summary: msg });
     const reportPath = generateReport(input, steps, null, runDir);
     return {
+      runId,
       status: "partial_failure",
       data: null,
       error: `Data fetch failed: ${msg}`,
@@ -203,6 +246,11 @@ export async function runOrchestrator(
     const factorResult = await runFactorCompute(
       {
         symbols,
+        instruments: input.instruments,
+        assetClass: input.assetClass,
+        marketRegion: input.marketRegion,
+        venue: input.venue,
+        provider: input.provider,
         factors: input.factors,
         datasetPath,
       },
@@ -225,6 +273,7 @@ export async function runOrchestrator(
     steps.push({ step: "factor_compute", status: "failed", summary: msg });
     const reportPath = generateReport(input, steps, null, runDir);
     return {
+      runId,
       status: "partial_failure",
       data: null,
       error: `Factor compute failed: ${msg}`,
@@ -241,9 +290,15 @@ export async function runOrchestrator(
         strategy: input.strategy,
         params: strategyParams,
         symbols,
+        instruments: input.instruments,
+        assetClass: input.assetClass,
+        marketRegion: input.marketRegion,
+        venue: input.venue,
+        provider: input.provider,
         startDate,
         endDate,
         datasetPath,
+        costConfig: input.costConfig,
       },
       apiOptions,
     );
@@ -272,6 +327,7 @@ export async function runOrchestrator(
     steps.push({ step: "backtest", status: "failed", summary: msg });
     const reportPath = generateReport(input, steps, null, runDir);
     return {
+      runId,
       status: "partial_failure",
       data: null,
       error: `Backtest failed: ${msg}`,
@@ -299,6 +355,7 @@ export async function runOrchestrator(
   );
 
   return {
+    runId,
     status: "success",
     data: metrics,
     error: null,

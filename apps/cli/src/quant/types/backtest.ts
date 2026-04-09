@@ -1,10 +1,14 @@
 import { z } from "zod";
 import {
+  AssetClassSchema,
   DataModeSchema,
   DateStringSchema,
-  MarketCodeSchema,
+  InstrumentRefSchema,
+  MarketRegionSchema,
+  ProviderCodeSchema,
   QuantParamValueSchema,
   QuantRunMetaSchema,
+  VenueCodeSchema,
 } from "./base.js";
 
 export const SlippageConfigSchema = z.object({
@@ -19,21 +23,39 @@ export const BacktestCostConfigSchema = z.object({
 });
 export type BacktestCostConfig = z.infer<typeof BacktestCostConfigSchema>;
 
-export const BacktestRequestSchema = z.object({
-  strategy: z.string().min(1),
-  params: z.record(z.string(), QuantParamValueSchema).default({}),
-  market: MarketCodeSchema.default("ton"),
-  symbols: z.array(z.string().min(1)).min(1),
-  referenceSymbols: z.array(z.string().min(1)).optional(),
-  startDate: DateStringSchema,
-  endDate: DateStringSchema,
-  weights: z.record(z.string(), z.number()).optional(),
-  initialCapital: z.number().positive().optional(),
-  costConfig: BacktestCostConfigSchema.optional(),
-  datasetPath: z.string().min(1).optional(),
-  dataMode: DataModeSchema.optional(),
-  outputDir: z.string().min(1).optional(),
-});
+export const BacktestRequestSchema = z
+  .object({
+    strategy: z.string().min(1),
+    params: z.record(z.string(), QuantParamValueSchema).default({}),
+    assetClass: AssetClassSchema.default("crypto"),
+    marketRegion: MarketRegionSchema.default("ton"),
+    venue: VenueCodeSchema.optional(),
+    provider: ProviderCodeSchema.optional(),
+    symbols: z.array(z.string().min(1)).optional(),
+    instruments: z.array(InstrumentRefSchema).optional(),
+    referenceSymbols: z.array(z.string().min(1)).optional(),
+    startDate: DateStringSchema,
+    endDate: DateStringSchema,
+    weights: z.record(z.string(), z.number()).optional(),
+    initialCapital: z.number().positive().optional(),
+    costConfig: BacktestCostConfigSchema.optional(),
+    datasetPath: z.string().min(1).optional(),
+    dataMode: DataModeSchema.optional(),
+    outputDir: z.string().min(1).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      !value.datasetPath &&
+      (value.symbols?.length ?? 0) === 0 &&
+      (value.instruments?.length ?? 0) === 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Expected datasetPath, symbols, or instruments.",
+        path: ["symbols"],
+      });
+    }
+  });
 export type BacktestRequest = z.input<typeof BacktestRequestSchema>;
 
 export const BacktestResultSchema = QuantRunMetaSchema.extend({

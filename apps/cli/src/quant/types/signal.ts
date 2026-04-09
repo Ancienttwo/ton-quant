@@ -1,10 +1,14 @@
 import { z } from "zod";
 import {
+  AssetClassSchema,
   DataModeSchema,
   DateStringSchema,
-  MarketCodeSchema,
+  InstrumentRefSchema,
+  MarketRegionSchema,
+  ProviderCodeSchema,
   QuantParamValueSchema,
   QuantRunMetaSchema,
+  VenueCodeSchema,
 } from "./base.js";
 
 export const SignalDescriptorSchema = z.object({
@@ -25,17 +29,35 @@ export const SignalListResultSchema = QuantRunMetaSchema.extend({
 });
 export type SignalListResult = z.infer<typeof SignalListResultSchema>;
 
-export const SignalEvaluateRequestSchema = z.object({
-  market: MarketCodeSchema.default("ton"),
-  symbols: z.array(z.string().min(1)).min(1),
-  signals: z.array(z.string().min(1)).min(1),
-  signalParams: z.record(z.string(), z.record(z.string(), QuantParamValueSchema)).default({}),
-  startDate: DateStringSchema.optional(),
-  endDate: DateStringSchema.optional(),
-  datasetPath: z.string().min(1).optional(),
-  dataMode: DataModeSchema.optional(),
-  outputDir: z.string().min(1).optional(),
-});
+export const SignalEvaluateRequestSchema = z
+  .object({
+    assetClass: AssetClassSchema.default("crypto"),
+    marketRegion: MarketRegionSchema.default("ton"),
+    venue: VenueCodeSchema.optional(),
+    provider: ProviderCodeSchema.optional(),
+    symbols: z.array(z.string().min(1)).optional(),
+    instruments: z.array(InstrumentRefSchema).optional(),
+    signals: z.array(z.string().min(1)).min(1),
+    signalParams: z.record(z.string(), z.record(z.string(), QuantParamValueSchema)).default({}),
+    startDate: DateStringSchema.optional(),
+    endDate: DateStringSchema.optional(),
+    datasetPath: z.string().min(1).optional(),
+    dataMode: DataModeSchema.optional(),
+    outputDir: z.string().min(1).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      !value.datasetPath &&
+      (value.symbols?.length ?? 0) === 0 &&
+      (value.instruments?.length ?? 0) === 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Expected datasetPath, symbols, or instruments.",
+        path: ["symbols"],
+      });
+    }
+  });
 export type SignalEvaluateRequest = z.input<typeof SignalEvaluateRequestSchema>;
 
 export const SignalEvaluationSchema = z.object({

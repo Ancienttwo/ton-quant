@@ -8,6 +8,7 @@ import {
   type SignalListResult,
   SignalListResultSchema,
 } from "../types/index.js";
+import { withResolvedInstruments } from "./request-market.js";
 import { invokeQuantCli, type RunQuantApiOptions } from "./shared.js";
 
 export async function runSignalList(
@@ -30,11 +31,12 @@ export async function runSignalEvaluate(
   options?: RunQuantApiOptions,
 ): Promise<SignalEvaluateResult> {
   const parsed = SignalEvaluateRequestSchema.parse(request);
+  const normalized = withResolvedInstruments(parsed);
   return invokeQuantCli(
     "signals",
     ["signal", "evaluate"],
-    parsed,
-    parsed,
+    normalized,
+    normalized,
     (raw) => SignalEvaluateResultSchema.parse(raw),
     options,
   );

@@ -1,7 +1,29 @@
 import type { Command } from "commander";
-import { runOrchestrator } from "../quant/orchestrator.js";
-import { formatAutoresearchResult } from "../utils/format-quant.js";
+import {
+  getAutoresearchTrack,
+  initAutoresearchTrack,
+  listAutoresearchTracks,
+  promoteAutoresearchCandidate,
+  rejectAutoresearchCandidate,
+  runAutoresearchTrack,
+} from "../quant/api/autoresearch.js";
+import type { AssetClass, MarketRegion, ProviderCode, VenueCode } from "../quant/types/index.js";
+import { formatAutoresearchList, formatAutoresearchResult } from "../utils/format-quant.js";
 import { handleCommand } from "../utils/output.js";
+
+interface AutoresearchInitOptions {
+  title: string;
+  strategy: string;
+  symbols: string;
+  startDate: string;
+  endDate: string;
+  assetClass?: AssetClass;
+  marketRegion?: MarketRegion;
+  venue?: VenueCode;
+  provider?: ProviderCode;
+  track?: string;
+  thesis?: string;
+}
 
 export function registerAutoresearchCommand(program: Command): void {
   const command = program
@@ -10,79 +32,112 @@ export function registerAutoresearchCommand(program: Command): void {
 
   command
     .command("run")
-    .description("Run research-to-report workflow for a TON asset")
-    .requiredOption("--asset <asset>", "Asset pair (e.g. TON/USDT)")
-    .option("--period <period>", "Lookback period (e.g. 90d, 12w)", "90d")
-    .option("--strategy <strategy>", "Strategy id", "momentum")
-    .option("--preset <presetId>", "Preset id to load params from")
-    .option("--factors <factors>", "Comma-separated factors", "rsi,macd,volatility")
+    .description("Run a durable autoresearch iteration against an existing track")
+    .requiredOption("--track <trackId>", "Track id")
     .option("--iterations <count>", "Number of iterations", "1")
-    .action(
-      async (opts: {
-        asset: string;
-        period: string;
-        strategy: string;
-        preset?: string;
-        factors: string;
-        iterations: string;
-      }) => {
-        const json = program.opts().json ?? false;
-        await handleCommand(
-          { json },
-          async () => {
-            const result = await runOrchestrator({
-              asset: opts.asset,
-              period: opts.period,
-              strategy: opts.strategy,
-              presetId: opts.preset,
-              iterations: parseInt(opts.iterations, 10),
-              factors: opts.factors.split(","),
-            });
-            return result as unknown as Record<string, unknown>;
-          },
-          formatAutoresearchResult,
-        );
-      },
-    );
+    .action(async (opts: { track: string; iterations: string }) => {
+      const json = program.opts().json ?? false;
+      await handleCommand(
+        { json },
+        async () =>
+          runAutoresearchTrack({
+            trackId: opts.track,
+            iterations: parseInt(opts.iterations, 10),
+          }),
+        formatAutoresearchResult,
+      );
+    });
 
   command
     .command("init")
-    .description("Initialize a TON quant autoresearch track")
+    .description("Initialize a normalized quant autoresearch track")
     .requiredOption("--title <title>", "Track title")
     .requiredOption("--strategy <strategy>", "Strategy id")
     .requiredOption("--symbols <symbols>", "Comma-separated symbols")
     .requiredOption("--start-date <date>", "Start date (YYYY-MM-DD)")
     .requiredOption("--end-date <date>", "End date (YYYY-MM-DD)")
-    .action(async (_opts) => {
+    .option("--asset-class <assetClass>", "Asset class: crypto|equity|bond", "crypto")
+    .option("--market-region <marketRegion>", "Market region: ton|us|hk|cn", "ton")
+    .option("--venue <venue>", "Venue override (stonfi|nyse|nasdaq|hkex|sse|szse|cibm)")
+    .option("--provider <provider>", "Provider override (stonfi|tonapi|yfinance|openbb|synthetic)")
+    .option("--track <trackId>", "Optional explicit track id")
+    .option("--thesis <text>", "Optional investment thesis")
+    .action(async (opts: AutoresearchInitOptions) => {
       const json = program.opts().json ?? false;
-      await handleCommand({ json }, async () => ({
-        status: "completed",
-        summary:
-          "Track initialized (init is a thin wrapper — use `autoresearch run` for the full workflow)",
-      }));
+      await handleCommand(
+        { json },
+        async () =>
+          initAutoresearchTrack({
+            trackId: opts.track,
+            title: opts.title,
+            thesis: opts.thesis,
+            strategy: opts.strategy,
+            assetClass: opts.assetClass,
+            marketRegion: opts.marketRegion,
+            venue: opts.venue,
+            provider: opts.provider,
+            symbols: opts.symbols.split(",").map((symbol) => symbol.trim()),
+            startDate: opts.startDate,
+            endDate: opts.endDate,
+          }),
+        formatAutoresearchResult,
+      );
     });
 
   command
     .command("status")
-    .description("Show a TON quant autoresearch track")
+    .description("Show a quant autoresearch track")
     .requiredOption("--track <trackId>", "Track id")
-    .action(async (_opts) => {
+    .action(async (opts: { track: string }) => {
       const json = program.opts().json ?? false;
-      await handleCommand({ json }, async () => ({
-        status: "completed",
-        summary: "No active tracks (use `autoresearch run` to start a research workflow)",
-      }));
+      await handleCommand(
+        { json },
+        async () => getAutoresearchTrack({ trackId: opts.track }),
+        formatAutoresearchResult,
+      );
     });
 
   command
     .command("list")
-    .description("List TON quant autoresearch tracks")
+    .description("List quant autoresearch tracks")
     .action(async () => {
       const json = program.opts().json ?? false;
-      await handleCommand({ json }, async () => ({
-        status: "completed",
-        summary: "No tracks found (use `autoresearch run` to start a research workflow)",
-        tracks: [],
-      }));
+      await handleCommand({ json }, async () => listAutoresearchTracks(), formatAutoresearchList);
+    });
+
+  command
+    .command("promote")
+    .description("Promote an autoresearch candidate into the track baseline")
+    .requiredOption("--track <trackId>", "Track id")
+    .requiredOption("--candidate <candidateId>", "Candidate id")
+    .action(async (opts: { track: string; candidate: string }) => {
+      const json = program.opts().json ?? false;
+      await handleCommand(
+        { json },
+        async () =>
+          promoteAutoresearchCandidate({
+            trackId: opts.track,
+            candidateId: opts.candidate,
+          }),
+        formatAutoresearchResult,
+      );
+    });
+
+  command
+    .command("reject")
+    .description("Reject an autoresearch candidate")
+    .requiredOption("--track <trackId>", "Track id")
+    .requiredOption("--candidate <candidateId>", "Candidate id")
+    .action(async (opts: { track: string; candidate: string }) => {
+      const json = program.opts().json ?? false;
+      await handleCommand(
+        { json },
+        async () =>
+          rejectAutoresearchCandidate({
+            trackId: opts.track,
+            candidateId: opts.candidate,
+          }),
+        formatAutoresearchResult,
+      );
     });
 }

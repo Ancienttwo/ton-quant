@@ -1,117 +1,148 @@
 /**
- * Data fetch handler — generates synthetic OHLCV data for TON pairs.
- * Real API integration (STON.fi / GeckoTerminal) can replace the generator later.
+ * Data fetch handler — resolves instruments and writes normalized dataset documents.
+ * HK/CN equity and bonds are schema-valid, but remain provider-stubbed in this mock backend.
  */
 
-interface OHLCVBar {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
+import {
+  datasetFileName,
+  findLatestDataset,
+  generateDatasetDocument,
+  listDatasets,
+  writeDatasetDocument,
+} from "../market/datasets";
+import { resolveInstrumentsFromInput } from "../market/instruments";
 
-function generateSyntheticOHLCV(symbol: string, days: number, startDate?: string): OHLCVBar[] {
-  const bars: OHLCVBar[] = [];
-  const start = startDate ? new Date(startDate) : new Date(Date.now() - days * 86400_000);
-  const basePrice = symbol.toUpperCase().includes("TON") ? 3.5 : 1.0;
-  let price = basePrice;
-
-  for (let i = 0; i < days; i++) {
-    const date = new Date(start.getTime() + i * 86400_000);
-    const dateStr = date.toISOString().slice(0, 10);
-    const change = (Math.random() - 0.48) * 0.06;
-    const open = price;
-    price = price * (1 + change);
-    const close = price;
-    const high = Math.max(open, close) * (1 + Math.random() * 0.02);
-    const low = Math.min(open, close) * (1 - Math.random() * 0.02);
-    const volume = 1_000_000 + Math.random() * 5_000_000;
-
-    bars.push({
-      date: dateStr,
-      open: Number(open.toFixed(6)),
-      high: Number(high.toFixed(6)),
-      low: Number(low.toFixed(6)),
-      close: Number(close.toFixed(6)),
-      volume: Math.round(volume),
-    });
-  }
-  return bars;
-}
-
-function computeDateDiff(start: string, end: string): number {
-  return Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86400_000);
-}
-
-export function handleDataFetch(input: Record<string, unknown>): Record<string, unknown> {
-  const symbols = (input.symbols as string[]) ?? ["TON/USDT"];
-  const startDate = input.startDate as string | undefined;
-  const endDate = input.endDate as string | undefined;
-  const outputDir = input.outputDir as string | undefined;
-
-  const days = startDate && endDate ? computeDateDiff(startDate, endDate) : 90;
-  const allBars: Record<string, OHLCVBar[]> = {};
-  let totalBars = 0;
-
-  for (const symbol of symbols) {
-    const bars = generateSyntheticOHLCV(symbol, days, startDate);
-    allBars[symbol] = bars;
-    totalBars += bars.length;
-
-    if (outputDir) {
-      const safeName = symbol.replace(/\//g, "-");
-      const path = `${outputDir}/${safeName}.json`;
-      Bun.write(path, JSON.stringify(bars, null, 2));
-    }
-  }
-
-  const firstBar = allBars[symbols[0]]?.[0];
-  const lastBar = allBars[symbols[0]]?.[allBars[symbols[0]].length - 1];
-
+function datasetSummary(dataset: {
+  instrument: { displaySymbol: string };
+  interval: string;
+  path: string;
+  bars: Array<{ date: string }>;
+}) {
+  const firstBar = dataset.bars[0];
+  const lastBar = dataset.bars[dataset.bars.length - 1];
   return {
-    status: "completed",
-    summary: `Fetched ${totalBars} bars for ${symbols.length} symbol(s)`,
-    artifacts: outputDir
-      ? symbols.map((s) => ({
-          path: `${outputDir}/${s.replace(/\//g, "-")}.json`,
-          label: `${s} OHLCV`,
-          kind: "dataset",
-        }))
-      : [],
-    fetchedSymbols: symbols,
-    cacheHits: 0,
-    cacheMisses: symbols.length,
-    barCount: totalBars,
-    cacheFiles: [],
-    symbolCount: symbols.length,
-    dateRange: firstBar && lastBar ? { start: firstBar.date, end: lastBar.date } : undefined,
+    symbol: dataset.instrument.displaySymbol,
+    instrument: dataset.instrument,
+    interval: dataset.interval,
+    path: dataset.path,
+    barCount: dataset.bars.length,
+    startDate: firstBar?.date,
+    endDate: lastBar?.date,
   };
 }
 
-export function handleDataList(_input: Record<string, unknown>): Record<string, unknown> {
+export function handleDataFetch(input: Record<string, unknown>): Record<string, unknown> {
+  const instruments = resolveInstrumentsFromInput(input);
+  const interval = (input.interval as string | undefined) ?? "1d";
+  const startDate = input.startDate as string | undefined;
+  const endDate = input.endDate as string | undefined;
+  const outputDir = input.outputDir as string | undefined;
+  const datasets = instruments.map((instrument) =>
+    generateDatasetDocument({
+      instrument,
+      interval,
+      startDate,
+      endDate,
+    }),
+  );
+  const totalBars = datasets.reduce((sum, dataset) => sum + dataset.bars.length, 0);
+  const artifacts =
+    outputDir == null
+      ? []
+      : datasets.map((dataset) => {
+          const path = `${outputDir}/${datasetFileName(dataset.instrument.displaySymbol)}`;
+          writeDatasetDocument(path, dataset);
+          return {
+            path,
+            label: `${dataset.instrument.displaySymbol} dataset`,
+            kind: "dataset" as const,
+          };
+        });
+
+  const preview = datasets[0];
+  if (!preview) {
+    throw new Error("Expected at least one dataset to be generated.");
+  }
+
   return {
     status: "completed",
-    summary: "No cached datasets (mock backend)",
+    summary: `Fetched ${totalBars} bars for ${instruments.length} instrument(s)`,
+    artifacts,
+    instruments,
+    fetchedSymbols: instruments.map((instrument) => instrument.displaySymbol),
+    cacheHits: 0,
+    cacheMisses: instruments.length,
+    barCount: totalBars,
+    cacheFiles: artifacts.map((artifact) => artifact.path),
+    symbolCount: instruments.length,
+    dateRange:
+      preview.bars.length > 0
+        ? {
+            start: preview.bars[0]?.date,
+            end: preview.bars[preview.bars.length - 1]?.date,
+          }
+        : undefined,
+  };
+}
+
+export function handleDataList(input: Record<string, unknown>): Record<string, unknown> {
+  const outputDir = input.outputDir as string | undefined;
+  if (!outputDir) {
+    return {
+      status: "completed",
+      summary: "No cached datasets (missing output context)",
+      artifacts: [],
+      datasets: [],
+    };
+  }
+
+  const datasets = listDatasets(outputDir).map(datasetSummary);
+  return {
+    status: "completed",
+    summary: datasets.length
+      ? `${datasets.length} cached dataset(s) found`
+      : "No cached datasets (mock backend)",
     artifacts: [],
-    datasets: [],
+    datasets,
   };
 }
 
 export function handleDataInfo(input: Record<string, unknown>): Record<string, unknown> {
-  const symbol = (input.symbol as string) ?? "TON/USDT";
+  const outputDir = input.outputDir as string | undefined;
+  const instrument = resolveInstrumentsFromInput({
+    ...input,
+    symbols: [input.symbol as string],
+  })[0];
+  if (!instrument) {
+    throw new Error("Expected symbol resolution to return one instrument.");
+  }
+  const interval = (input.interval as string | undefined) ?? "1d";
+
+  const cached =
+    outputDir == null
+      ? null
+      : findLatestDataset(
+          outputDir,
+          (dataset) => dataset.instrument.id === instrument.id && dataset.interval === interval,
+        );
+
+  if (cached) {
+    return {
+      status: "completed",
+      summary: `Dataset info for ${instrument.displaySymbol}`,
+      artifacts: [],
+      dataset: datasetSummary(cached),
+    };
+  }
+
+  const preview = generateDatasetDocument({ instrument, interval });
   return {
     status: "completed",
-    summary: `Dataset info for ${symbol}`,
+    summary: `Dataset preview for ${instrument.displaySymbol}`,
     artifacts: [],
-    dataset: {
-      symbol,
-      interval: "1d",
-      path: "(synthetic)",
-      barCount: 90,
-      startDate: new Date(Date.now() - 90 * 86400_000).toISOString().slice(0, 10),
-      endDate: new Date().toISOString().slice(0, 10),
-    },
+    dataset: datasetSummary({
+      ...preview,
+      path: "(not cached yet)",
+    }),
   };
 }

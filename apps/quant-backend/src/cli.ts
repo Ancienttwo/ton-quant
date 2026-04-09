@@ -7,10 +7,10 @@
  * this process writes JSON result to stdout and logs to stderr.
  */
 
-import { handleBacktest } from "./handlers/backtest.ts";
-import { handleDataFetch, handleDataInfo, handleDataList } from "./handlers/data.ts";
-import { handleFactorCompute, handleFactorList } from "./handlers/factor.ts";
-import { handlePresetList, handlePresetShow } from "./handlers/preset.ts";
+import { handleBacktest } from "./handlers/backtest";
+import { handleDataFetch, handleDataInfo, handleDataList } from "./handlers/data";
+import { handleFactorCompute, handleFactorList } from "./handlers/factor";
+import { handlePresetList, handlePresetShow } from "./handlers/preset";
 
 type Handler = (input: Record<string, unknown>) => Record<string, unknown>;
 
