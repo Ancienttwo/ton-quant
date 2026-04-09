@@ -18,13 +18,33 @@ import {
 // @ts-expect-error - backend fixtures are runtime-tested outside the CLI tsconfig boundary
 import { resolveInstrument } from "../../../../quant-backend/src/market/instruments";
 // @ts-expect-error - backend fixtures are runtime-tested outside the CLI tsconfig boundary
+import * as openbbMarket from "../../../../quant-backend/src/market/openbb";
+// @ts-expect-error - backend fixtures are runtime-tested outside the CLI tsconfig boundary
 import * as yfinanceMarket from "../../../../quant-backend/src/market/yfinance";
 
 const tempDirs: string[] = [];
+const OPENBB_ENV_KEYS = [
+  "TONQUANT_OPENBB_API_URL",
+  "TONQUANT_OPENBB_API_USERNAME",
+  "TONQUANT_OPENBB_API_PASSWORD",
+  "TONQUANT_OPENBB_CREDENTIALS_JSON",
+  "TONQUANT_OPENBB_SOURCE_PROVIDER",
+] as const;
+const originalOpenBBEnv = Object.fromEntries(
+  OPENBB_ENV_KEYS.map((key) => [key, process.env[key]]),
+) as Record<(typeof OPENBB_ENV_KEYS)[number], string | undefined>;
 
 afterEach(() => {
   for (const dir of tempDirs.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
+  }
+  for (const key of OPENBB_ENV_KEYS) {
+    const original = originalOpenBBEnv[key];
+    if (original == null) {
+      delete process.env[key];
+    } else {
+      process.env[key] = original;
+    }
   }
 });
 
@@ -107,6 +127,27 @@ describe("data handler", () => {
   });
 
   test("handleDataFetch resolves HK equities onto HKEX", async () => {
+    const fetchSpy = spyOn(yfinanceMarket, "fetchYFinanceDatasetDocument").mockResolvedValue(
+      createDatasetDocument({
+        instrument: resolveInstrument({
+          symbol: "0700",
+          assetClass: "equity",
+          marketRegion: "hk",
+          provider: "yfinance",
+        }),
+        interval: "1d",
+        bars: [
+          {
+            date: "2024-01-02",
+            open: 320,
+            high: 325,
+            low: 318,
+            close: 323,
+            volume: 900_000,
+          },
+        ],
+      }),
+    );
     const result = await handleDataInfo({
       symbol: "0700",
       assetClass: "equity",
@@ -119,9 +160,32 @@ describe("data handler", () => {
     expect(dataset.symbol).toBe("0700");
     expect(dataset.instrument.marketRegion).toBe("hk");
     expect(dataset.instrument.venue).toBe("hkex");
+    expect(dataset.instrument.provider).toBe("yfinance");
+    fetchSpy.mockRestore();
   });
 
   test("handleDataFetch resolves A-shares onto SSE by default", async () => {
+    const fetchSpy = spyOn(yfinanceMarket, "fetchYFinanceDatasetDocument").mockResolvedValue(
+      createDatasetDocument({
+        instrument: resolveInstrument({
+          symbol: "600519",
+          assetClass: "equity",
+          marketRegion: "cn",
+          provider: "yfinance",
+        }),
+        interval: "1d",
+        bars: [
+          {
+            date: "2024-01-02",
+            open: 1500,
+            high: 1510,
+            low: 1490,
+            close: 1508,
+            volume: 250_000,
+          },
+        ],
+      }),
+    );
     const result = await handleDataInfo({
       symbol: "600519",
       assetClass: "equity",
@@ -134,6 +198,8 @@ describe("data handler", () => {
     expect(dataset.symbol).toBe("600519");
     expect(dataset.instrument.marketRegion).toBe("cn");
     expect(dataset.instrument.venue).toBe("sse");
+    expect(dataset.instrument.provider).toBe("yfinance");
+    fetchSpy.mockRestore();
   });
 
   test("yfinance symbol normalization handles HK and CN market suffixes", () => {
@@ -266,6 +332,90 @@ describe("data handler", () => {
       }),
     ).rejects.toThrow("No Yahoo Finance data for 999999.SS");
 
+    fetchSpy.mockRestore();
+  });
+
+  test("handleDataFetch persists provider-backed openbb datasets", async () => {
+    const outputDir = createTempDir("tonquant-openbb-fetch-");
+    process.env.TONQUANT_OPENBB_API_URL = "http://127.0.0.1:8080/api/v1";
+    const fetchSpy = spyOn(openbbMarket, "fetchOpenBBDatasetDocument").mockResolvedValue(
+      createDatasetDocument({
+        instrument: resolveInstrument({
+          symbol: "0700",
+          assetClass: "equity",
+          marketRegion: "hk",
+          provider: "openbb",
+        }),
+        interval: "1d",
+        bars: [
+          {
+            date: "2024-01-02",
+            open: 320,
+            high: 325,
+            low: 318,
+            close: 323,
+            volume: 900_000,
+          },
+          {
+            date: "2024-01-03",
+            open: 323,
+            high: 330,
+            low: 322,
+            close: 328,
+            volume: 950_000,
+          },
+        ],
+      }),
+    );
+
+    const result = await handleDataFetch({
+      symbols: ["0700"],
+      assetClass: "equity",
+      marketRegion: "hk",
+      provider: "openbb",
+      outputDir,
+    });
+
+    const cacheFile = (result.cacheFiles as string[])[0];
+    const persisted = readDatasetDocument(cacheFile as string);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(persisted.provider).toBe("openbb");
+    expect(persisted.instrument.provider).toBe("openbb");
+    expect(persisted.bars).toHaveLength(2);
+    fetchSpy.mockRestore();
+  });
+
+  test("handleDataFetch rejects openbb requests when OpenBB is not configured", async () => {
+    delete process.env.TONQUANT_OPENBB_API_URL;
+
+    await expect(
+      handleDataFetch({
+        symbols: ["0700"],
+        assetClass: "equity",
+        marketRegion: "hk",
+        provider: "openbb",
+      }),
+    ).rejects.toThrow("OpenBB API URL is not configured. Set TONQUANT_OPENBB_API_URL.");
+  });
+
+  test("handleDataFetch rejects unsupported openbb market combinations before transport", async () => {
+    process.env.TONQUANT_OPENBB_API_URL = "http://127.0.0.1:8080/api/v1";
+    const fetchSpy = spyOn(openbbMarket, "fetchOpenBBDatasetDocument").mockImplementation(
+      mock(async () => {
+        throw new Error("provider transport should not run");
+      }),
+    );
+
+    await expect(
+      handleDataFetch({
+        symbols: ["AAPL"],
+        assetClass: "equity",
+        marketRegion: "us",
+        provider: "openbb",
+      }),
+    ).rejects.toThrow("Unsupported provider 'openbb' for market 'equity/us'.");
+
+    expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
   });
 

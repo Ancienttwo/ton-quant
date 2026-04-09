@@ -8,6 +8,7 @@ import {
   type ProviderCode,
   type VenueCode,
 } from "../types/base.js";
+import { providerCompatibilityError } from "./provider-compatibility.js";
 
 interface MarketDefaults {
   readonly quoteCurrency: string;
@@ -44,14 +45,14 @@ const EQUITY_MARKET_DEFAULTS: Record<MarketRegion, MarketDefaults | undefined> =
     timezone: "Asia/Hong_Kong",
     calendarId: "XHKG",
     defaultVenue: "hkex",
-    defaultProvider: "openbb",
+    defaultProvider: "yfinance",
   },
   cn: {
     quoteCurrency: "CNY",
     timezone: "Asia/Shanghai",
     calendarId: "XSHG",
     defaultVenue: "sse",
-    defaultProvider: "openbb",
+    defaultProvider: "yfinance",
   },
 };
 
@@ -64,7 +65,7 @@ const BOND_MARKET_DEFAULTS: Record<MarketRegion, MarketDefaults | undefined> = {
     timezone: "Asia/Shanghai",
     calendarId: "CIBM",
     defaultVenue: "cibm",
-    defaultProvider: "openbb",
+    defaultProvider: "synthetic",
   },
 };
 
@@ -100,11 +101,9 @@ function assertProviderAllowed(
   marketRegion: MarketRegion,
   provider: ProviderCode,
 ): void {
-  if (provider === "yfinance" && assetClass !== "equity") {
-    throw new ServiceError(
-      `Unsupported provider 'yfinance' for market '${assetClass}/${marketRegion}'.`,
-      "QUANT_PROVIDER_UNSUPPORTED",
-    );
+  const message = providerCompatibilityError({ assetClass, marketRegion, provider });
+  if (message) {
+    throw new ServiceError(message, "QUANT_PROVIDER_UNSUPPORTED");
   }
 }
 

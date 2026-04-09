@@ -1,3 +1,6 @@
+import { QuantBackendError } from "../errors";
+import { providerCompatibilityError } from "./provider-compatibility";
+
 export type AssetClass = "crypto" | "equity" | "bond";
 export type MarketRegion = "ton" | "us" | "hk" | "cn";
 export type VenueCode = "stonfi" | "nyse" | "nasdaq" | "hkex" | "sse" | "szse" | "cibm";
@@ -30,8 +33,9 @@ function assertProviderAllowed(
   marketRegion: MarketRegion,
   provider: ProviderCode,
 ): void {
-  if (provider === "yfinance" && assetClass !== "equity") {
-    throw new Error(`Unsupported provider 'yfinance' for market '${assetClass}/${marketRegion}'.`);
+  const message = providerCompatibilityError({ assetClass, marketRegion, provider });
+  if (message) {
+    throw new QuantBackendError(message, "QUANT_PROVIDER_UNSUPPORTED");
   }
 }
 
@@ -63,7 +67,7 @@ function marketDefaultsFor(
       timezone: "Asia/Hong_Kong",
       calendarId: "XHKG",
       defaultVenue: "hkex",
-      defaultProvider: "openbb",
+      defaultProvider: "yfinance",
     };
   }
   if (assetClass === "equity" && marketRegion === "cn") {
@@ -72,7 +76,7 @@ function marketDefaultsFor(
       timezone: "Asia/Shanghai",
       calendarId: "XSHG",
       defaultVenue: "sse",
-      defaultProvider: "openbb",
+      defaultProvider: "yfinance",
     };
   }
   if (assetClass === "bond" && marketRegion === "cn") {
@@ -81,7 +85,7 @@ function marketDefaultsFor(
       timezone: "Asia/Shanghai",
       calendarId: "CIBM",
       defaultVenue: "cibm",
-      defaultProvider: "openbb",
+      defaultProvider: "synthetic",
     };
   }
   return undefined;
@@ -93,7 +97,10 @@ function assertVenueAllowed(
   venue: VenueCode,
 ): void {
   if (assetClass === "crypto" && !(marketRegion === "ton" && venue === "stonfi")) {
-    throw new Error(`Unsupported crypto venue '${venue}' for market '${marketRegion}'.`);
+    throw new QuantBackendError(
+      `Unsupported crypto venue '${venue}' for market '${marketRegion}'.`,
+      "QUANT_MARKET_COMBINATION_UNSUPPORTED",
+    );
   }
   if (
     assetClass === "equity" &&
@@ -103,10 +110,16 @@ function assertVenueAllowed(
       (marketRegion === "cn" && (venue === "sse" || venue === "szse"))
     )
   ) {
-    throw new Error(`Unsupported equity venue '${venue}' for market '${marketRegion}'.`);
+    throw new QuantBackendError(
+      `Unsupported equity venue '${venue}' for market '${marketRegion}'.`,
+      "QUANT_MARKET_COMBINATION_UNSUPPORTED",
+    );
   }
   if (assetClass === "bond" && !(marketRegion === "cn" && venue === "cibm")) {
-    throw new Error(`Unsupported bond venue '${venue}' for market '${marketRegion}'.`);
+    throw new QuantBackendError(
+      `Unsupported bond venue '${venue}' for market '${marketRegion}'.`,
+      "QUANT_MARKET_COMBINATION_UNSUPPORTED",
+    );
   }
 }
 
@@ -156,8 +169,9 @@ export function resolveInstrument(input: {
 }): InstrumentRefLike {
   const defaults = marketDefaultsFor(input.assetClass, input.marketRegion);
   if (!defaults) {
-    throw new Error(
-      `Provider stub only: unsupported market combination ${input.assetClass}/${input.marketRegion}.`,
+    throw new QuantBackendError(
+      `Unsupported market combination: ${input.assetClass}/${input.marketRegion}`,
+      "QUANT_MARKET_COMBINATION_UNSUPPORTED",
     );
   }
   const venue = input.venue ?? defaults.defaultVenue;
@@ -224,7 +238,7 @@ export function resolveInstrumentsFromInput(input: Record<string, unknown>): Ins
   const provider = input.provider as ProviderCode | undefined;
 
   if (symbols.length === 0) {
-    throw new Error("Expected symbols or instruments.");
+    throw new QuantBackendError("Expected symbols or instruments.", "QUANT_REQUEST_INVALID");
   }
 
   return symbols.map((symbol) =>

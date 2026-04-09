@@ -12,6 +12,7 @@ import {
   type QuantAutoresearchListRequest,
   QuantAutoresearchListRequestSchema,
   type QuantAutoresearchListResult,
+  QuantAutoresearchListResultSchema,
   type QuantAutoresearchPromoteRequest,
   QuantAutoresearchPromoteRequestSchema,
   type QuantAutoresearchRejectRequest,
@@ -21,53 +22,98 @@ import {
   type QuantAutoresearchStatusRequest,
   QuantAutoresearchStatusRequestSchema,
   type QuantAutoresearchTrackResult,
+  QuantAutoresearchTrackResultSchema,
 } from "../types/index.js";
-import type { RunQuantApiOptions } from "./shared.js";
+import { resolveInstrumentSelection } from "./request-market.js";
+import { invokeLocalQuantOperation, type RunQuantApiOptions } from "./shared.js";
 
 export async function initAutoresearchTrack(
   request: QuantAutoresearchInitRequest,
-  _options?: RunQuantApiOptions,
+  options?: RunQuantApiOptions,
 ): Promise<QuantAutoresearchTrackResult> {
   const parsed = QuantAutoresearchInitRequestSchema.parse(request);
-  return initTrack(parsed);
+  const normalized = resolveInstrumentSelection(parsed);
+  return invokeLocalQuantOperation(
+    "autoresearch-runs",
+    normalized,
+    normalized,
+    (raw) => QuantAutoresearchTrackResultSchema.parse(raw),
+    async () => initTrack(normalized),
+    options,
+  );
 }
 
 export async function runAutoresearchTrack(
   request: QuantAutoresearchRunRequest,
-  _options?: RunQuantApiOptions,
+  options?: RunQuantApiOptions,
 ): Promise<QuantAutoresearchTrackResult> {
   const parsed = QuantAutoresearchRunRequestSchema.parse(request);
-  return runTrack(parsed);
+  return invokeLocalQuantOperation(
+    "autoresearch-runs",
+    parsed,
+    parsed,
+    (raw) => QuantAutoresearchTrackResultSchema.parse(raw),
+    async () => runTrack(parsed),
+    options,
+  );
 }
 
 export async function getAutoresearchTrack(
   request: QuantAutoresearchStatusRequest,
-  _options?: RunQuantApiOptions,
+  options?: RunQuantApiOptions,
 ): Promise<QuantAutoresearchTrackResult> {
   const parsed = QuantAutoresearchStatusRequestSchema.parse(request);
-  return getTrack(parsed);
+  return invokeLocalQuantOperation(
+    "autoresearch-runs",
+    parsed,
+    parsed,
+    (raw) => QuantAutoresearchTrackResultSchema.parse(raw),
+    async () => getTrack(parsed),
+    options,
+  );
 }
 
 export async function listAutoresearchTracks(
   request: QuantAutoresearchListRequest = {},
-  _options?: RunQuantApiOptions,
+  options?: RunQuantApiOptions,
 ): Promise<QuantAutoresearchListResult> {
   const parsed = QuantAutoresearchListRequestSchema.parse(request);
-  return listTracks(parsed);
+  return invokeLocalQuantOperation(
+    "autoresearch-runs",
+    parsed,
+    parsed,
+    (raw) => QuantAutoresearchListResultSchema.parse(raw),
+    async () => listTracks(parsed),
+    options,
+  );
 }
 
 export async function promoteAutoresearchCandidate(
   request: QuantAutoresearchPromoteRequest,
-  _options?: RunQuantApiOptions,
+  options?: RunQuantApiOptions,
 ): Promise<QuantAutoresearchTrackResult> {
   const parsed = QuantAutoresearchPromoteRequestSchema.parse(request);
-  return promoteCandidate(parsed);
+  return invokeLocalQuantOperation(
+    "autoresearch-runs",
+    parsed,
+    parsed,
+    (raw) => QuantAutoresearchTrackResultSchema.parse(raw),
+    async () => promoteCandidate(parsed),
+    options,
+  );
 }
 
 export async function rejectAutoresearchCandidate(
   request: QuantAutoresearchRejectRequest,
-  _options?: RunQuantApiOptions,
+  options?: RunQuantApiOptions,
 ): Promise<QuantAutoresearchTrackResult> {
   const parsed = QuantAutoresearchRejectRequestSchema.parse(request);
-  return rejectCandidate(parsed);
+  return invokeLocalQuantOperation(
+    "autoresearch-runs",
+    parsed,
+    parsed,
+    (raw) => QuantAutoresearchTrackResultSchema.parse(raw),
+    async () => rejectCandidate(parsed),
+    options,
+  );
 }

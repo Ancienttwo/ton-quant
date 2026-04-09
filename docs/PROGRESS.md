@@ -15,3 +15,7 @@
 | 2026-03-23 | Tests: 101→135, quant backend + runner + orchestrator covered | Done |
 | 2026-04-09 | Local audit event log: append-only event bus, rollback-on-append-failure, marketplace state-change coverage | Done |
 | 2026-04-09 | Durable autoresearch track core: persisted track lifecycle, review loop, audit events, formatter + tests | Done |
+| 2026-04-09 | Multi-market layering: canonical instrument identity, provider-aware caches, HK/CN market surface | Done |
+| 2026-04-09 | YFinance Phase 1: real provider-backed `data fetch|info|list` for US/HK/CN equities | Done |
+| 2026-04-09 | Provider boundary unification: autoresearch transport artifacts + canonical provider compatibility | Done |
+| 2026-04-09 | OpenBB Phase 2: explicit HK/CN equity provider transport, honest defaults, coded-error transport | Done |

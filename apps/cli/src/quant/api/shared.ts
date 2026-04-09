@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { ServiceError } from "@tonquant/core";
 import {
   createQuantArtifactDir,
   listArtifacts,
@@ -16,6 +17,28 @@ export interface RunQuantApiOptions {
   spawnImpl?: QuantSpawnImpl;
 }
 
+const QUANT_BACKEND_ERROR_MARKER = "__TONQUANT_BACKEND_ERROR__=";
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs?: number): Promise<T> {
+  if (timeoutMs == null) {
+    return promise;
+  }
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error(`Quant operation timed out after ${timeoutMs}ms.`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 function extractStderr(error: unknown): string[] {
   if (error instanceof QuantCliError && error.stderr.trim()) {
     return error.stderr.trim().split("\n").filter(Boolean);
@@ -29,6 +52,36 @@ function logContent(error: unknown): string {
     return error.stderr;
   }
   return extractStderr(error).join("\n");
+}
+
+function normalizeQuantApiError(error: unknown): Error {
+  if (!(error instanceof QuantCliError)) {
+    return error instanceof Error ? error : new Error(String(error));
+  }
+
+  const markerLine = error.stderr
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.startsWith(QUANT_BACKEND_ERROR_MARKER));
+  if (!markerLine) {
+    return error;
+  }
+  try {
+    const parsed = JSON.parse(markerLine.slice(QUANT_BACKEND_ERROR_MARKER.length)) as {
+      code?: unknown;
+      message?: unknown;
+    };
+    if (
+      typeof parsed.code !== "string" ||
+      typeof parsed.message !== "string" ||
+      parsed.code === "QUANT_BACKEND_ERROR"
+    ) {
+      return error;
+    }
+    return new ServiceError(parsed.message, parsed.code);
+  } catch {
+    return error;
+  }
 }
 
 function mergeArtifacts(artifactDir: string, artifacts: ArtifactRef[]): ArtifactRef[] {
@@ -89,11 +142,64 @@ export async function invokeQuantCli<T>(
       });
     }
     const parsed = parseResult(rawJson);
-    const artifacts = mergeArtifacts(artifactDir, parsed.artifacts);
+    const preliminaryResult = {
+      ...parsed,
+      runId,
+      artifacts: mergeArtifacts(artifactDir, parsed.artifacts),
+    };
+    writeArtifactJson(artifactDir, "result.json", preliminaryResult);
     const finalResult = {
       ...parsed,
       runId,
-      artifacts,
+      artifacts: mergeArtifacts(artifactDir, parsed.artifacts),
+    };
+    writeArtifactJson(artifactDir, "result.json", finalResult);
+    return finalResult;
+  } catch (error) {
+    const normalizedError = normalizeQuantApiError(error);
+    writeArtifactText(artifactDir, "run.log", logContent(error));
+    writeArtifactJson(artifactDir, "result.json", {
+      runId,
+      status: "failed",
+      summary: normalizedError.message,
+      artifacts: listArtifacts(artifactDir),
+      errors: extractStderr(error),
+    });
+    throw normalizedError;
+  }
+}
+
+export async function invokeLocalQuantOperation<T>(
+  domain: QuantArtifactDomain,
+  publicRequest: Record<string, unknown>,
+  requestPayload: Record<string, unknown>,
+  parseResult: (raw: unknown) => T & { artifacts: ArtifactRef[] },
+  execute: () => Promise<unknown>,
+  options?: RunQuantApiOptions,
+): Promise<T> {
+  const outputDir =
+    typeof publicRequest.outputDir === "string" ? publicRequest.outputDir : undefined;
+  const { artifactDir, runId } = createRunContext(domain, outputDir);
+
+  writeArtifactJson(artifactDir, "request.json", {
+    runId,
+    ...requestPayload,
+  });
+
+  try {
+    const raw = await withTimeout(execute(), options?.timeoutMs);
+    writeArtifactText(artifactDir, "run.log", "");
+    const parsed = parseResult(raw);
+    const preliminaryResult = {
+      ...parsed,
+      runId,
+      artifacts: mergeArtifacts(artifactDir, parsed.artifacts),
+    };
+    writeArtifactJson(artifactDir, "result.json", preliminaryResult);
+    const finalResult = {
+      ...parsed,
+      runId,
+      artifacts: mergeArtifacts(artifactDir, parsed.artifacts),
     };
     writeArtifactJson(artifactDir, "result.json", finalResult);
     return finalResult;
@@ -102,7 +208,7 @@ export async function invokeQuantCli<T>(
     writeArtifactJson(artifactDir, "result.json", {
       runId,
       status: "failed",
-      summary: error instanceof Error ? error.message : "Quant CLI invocation failed",
+      summary: error instanceof Error ? error.message : "Quant operation failed",
       artifacts: listArtifacts(artifactDir),
       errors: extractStderr(error),
     });

@@ -84,6 +84,30 @@ describe("autoresearch lifecycle service", () => {
     ).rejects.toThrow("filesystem-safe identifier");
   });
 
+  test("load-time baseline validation rejects unsupported provider contracts", async () => {
+    const track = await createTrack("Invalid Provider Reload");
+    const baselineFile = join(
+      outputDir,
+      "quant",
+      "autoresearch",
+      track.baseline.trackId,
+      "baseline.json",
+    );
+    const baseline = JSON.parse(readFileSync(baselineFile, "utf-8")) as Record<string, unknown>;
+    writeFileSync(
+      baselineFile,
+      `${JSON.stringify({ ...baseline, provider: "yfinance" }, null, 2)}\n`,
+      "utf-8",
+    );
+
+    expect(() =>
+      getTrack({
+        trackId: track.baseline.trackId,
+        outputDir,
+      }),
+    ).toThrow("Unsupported provider 'yfinance' for market 'crypto/ton'.");
+  });
+
   test("run persists candidates, history, and latest run summary", async () => {
     const track = await createTrack("Track Run Success");
     const result = await runTrack({

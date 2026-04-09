@@ -178,3 +178,36 @@ Not recommended now:
   - SZSE: `######.SZ`
 - Phase 1 contract correction: treat `yfinance` as equities-only. Do not infer Yahoo crypto support from slash-form TON pairs such as `TON/USDT`; explicit ticker mapping is required before crypto can be supported safely.
 - Planning assumption for Phase 1: `yfinance` is acceptable as a free first provider for US/HK/CN equities where Yahoo exposes the symbol, but support must remain per-symbol rather than market-wide guaranteed.
+
+## Provider Boundary Notes (2026-04-09)
+
+- `quant/api/autoresearch.ts` currently calls lifecycle services directly instead of using the shared `invokeQuantCli` transport boundary used by `data`, `factor`, and `backtest`.
+- Provider compatibility is enforced in both the CLI market resolver and the backend market resolver, while autoresearch baseline construction separately derives provider defaults and instruments.
+- The next structural risk is not missing provider coverage; it is semantic drift between entrypoints that all claim to accept the same `assetClass + marketRegion + venue + provider` contract.
+- Implementation outcome: autoresearch API now writes request/result/log artifacts under `quant/autoresearch-runs/<runId>/` while preserving durable track state under `quant/autoresearch/<trackId>/`.
+- Implementation outcome: provider compatibility is now enforced as an explicit contract module in both CLI and backend market layers, and autoresearch baseline reload revalidates persisted provider selections through the same canonical instrument path.
+
+## OpenBB Phase 2 Notes (2026-04-09)
+
+- TonQuant already exposes `openbb` as a provider enum value, a default provider for `equity/hk`, `equity/cn`, and `bond/cn`, and as the provider on HK/CN presets.
+- Current backend data handling only has a live transport for `yfinance`; non-`yfinance` providers still resolve to synthetic/provider-stubbed datasets.
+- That means `openbb` is currently a false contract at the storage boundary: the provider name is real, but the `data fetch|info|list` behavior behind it is not.
+- `bond/cn` is the sharpest example of the problem because it defaults to `openbb` even though there is no live bond provider transport or preset demand yet.
+- OpenBB's practical integration surface is an external API/service boundary, not an in-repo Bun-native library. TonQuant should consume that boundary instead of absorbing a Python runtime or vendoring a large TypeScript port.
+- The right Phase 2 posture is:
+  - make `openbb` a real opt-in provider for HK/CN equities
+  - keep zero-config defaults runnable without OpenBB setup
+  - fail explicitly on missing OpenBB configuration or unsupported market combinations
+- Implementation outcome:
+  - `openbb` now has a real backend historical-data adapter for `equity/hk` and `equity/cn`
+  - configuration contract is environment-based:
+    - `TONQUANT_OPENBB_API_URL` required
+    - `TONQUANT_OPENBB_API_USERNAME` + `TONQUANT_OPENBB_API_PASSWORD` optional basic auth pair
+    - `TONQUANT_OPENBB_CREDENTIALS_JSON` optional passthrough for `X-OpenBB-Credentials`
+    - `TONQUANT_OPENBB_SOURCE_PROVIDER` optional passthrough for the upstream OpenBB provider query
+  - API failures now preserve stable service codes such as `QUANT_OPENBB_CONFIG_MISSING`, `QUANT_OPENBB_CONFIG_INVALID`, `QUANT_OPENBB_HTTP_ERROR`, `QUANT_OPENBB_NO_DATA`, and `QUANT_OPENBB_INTERVAL_UNSUPPORTED`
+  - `openbb` is explicitly limited to daily (`1d`) bars in this phase; intraday support is rejected rather than guessed
+  - HK/CN zero-config defaults and presets now point back to `yfinance`, while `bond/cn` defaults back to `synthetic`
+  - backend-coded errors now cross the CLI boundary through a dedicated structured stderr marker instead of regex-scraping human log lines
+  - OpenBB HTTP error details are whitespace-compacted before being surfaced, so remote response text cannot inject extra log lines into the coded-error path
+  - credential-bearing OpenBB requests are refused over non-HTTPS transport unless the target is loopback (`localhost`, `127.0.0.1`, `::1`)

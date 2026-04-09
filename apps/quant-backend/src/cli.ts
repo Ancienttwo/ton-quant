@@ -7,6 +7,7 @@
  * this process writes JSON result to stdout and logs to stderr.
  */
 
+import { isQuantBackendError, serializeQuantBackendError } from "./errors";
 import { handleBacktest } from "./handlers/backtest";
 import { handleDataFetch, handleDataInfo, handleDataList } from "./handlers/data";
 import { handleFactorCompute, handleFactorList } from "./handlers/factor";
@@ -62,7 +63,12 @@ async function main(): Promise<void> {
     process.stdout.write(JSON.stringify(output));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`[quant-backend] Error: ${message}\n`);
+    if (isQuantBackendError(error)) {
+      process.stderr.write(`${serializeQuantBackendError(error)}\n`);
+      process.stderr.write(`[quant-backend] Error [${error.code}]: ${message}\n`);
+    } else {
+      process.stderr.write(`[quant-backend] Error [QUANT_BACKEND_ERROR]: ${message}\n`);
+    }
     process.exit(1);
   }
 }

@@ -29,7 +29,7 @@ describe("preset handler", () => {
     const preset = result.preset as Record<string, unknown>;
     expect(preset.marketRegion).toBe("hk");
     expect(preset.venue).toBe("hkex");
-    expect(preset.provider).toBe("openbb");
+    expect(preset.provider).toBe("yfinance");
   });
 
   test("handlePresetShow throws on unknown preset", () => {

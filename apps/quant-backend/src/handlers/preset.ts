@@ -162,7 +162,7 @@ const PRESETS: PresetDetail[] = [
     assetClass: "equity",
     marketRegion: "hk",
     venue: "hkex",
-    provider: "openbb",
+    provider: "yfinance",
     symbols: ["0700"],
     instruments: [
       resolveInstrument({
@@ -170,7 +170,7 @@ const PRESETS: PresetDetail[] = [
         assetClass: "equity",
         marketRegion: "hk",
         venue: "hkex",
-        provider: "openbb",
+        provider: "yfinance",
       }),
     ],
     params: {
@@ -195,7 +195,7 @@ const PRESETS: PresetDetail[] = [
     assetClass: "equity",
     marketRegion: "cn",
     venue: "sse",
-    provider: "openbb",
+    provider: "yfinance",
     symbols: ["600519"],
     instruments: [
       resolveInstrument({
@@ -203,7 +203,7 @@ const PRESETS: PresetDetail[] = [
         assetClass: "equity",
         marketRegion: "cn",
         venue: "sse",
-        provider: "openbb",
+        provider: "yfinance",
       }),
     ],
     params: {

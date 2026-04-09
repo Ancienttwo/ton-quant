@@ -12,7 +12,7 @@ import {
 import { dirname, join } from "node:path";
 import { mutateWithEvent, ServiceError } from "@tonquant/core";
 import type { z } from "zod";
-import { defaultProviderFor, resolveInstruments } from "../market/index.js";
+import { resolveInstrumentSelection } from "../market/selection.js";
 import { runOrchestrator } from "../orchestrator.js";
 import { listArtifacts } from "../runner/artifact-manager.js";
 import {
@@ -219,11 +219,33 @@ function loadTrack(
     throw new AutoresearchTrackNotFoundError(trackId);
   }
   return {
-    baseline: readBaseline(trackId, outputDir),
+    baseline: canonicalizeBaseline(readBaseline(trackId, outputDir)),
     state: readState(trackId, outputDir),
     candidates: readCandidates(trackId, outputDir),
     history: parseHistoryFile(historyPath(trackId, outputDir)),
   };
+}
+
+function canonicalizeBaseline(
+  baseline: QuantAutoresearchBaselineSpec,
+): QuantAutoresearchBaselineSpec {
+  const normalized = resolveInstrumentSelection({
+    assetClass: baseline.assetClass,
+    marketRegion: baseline.marketRegion,
+    venue: baseline.venue,
+    provider: baseline.provider,
+    symbols: baseline.symbols,
+    instruments: baseline.instruments,
+  });
+  return QuantAutoresearchBaselineSpecSchema.parse({
+    ...baseline,
+    assetClass: normalized.assetClass,
+    marketRegion: normalized.marketRegion,
+    venue: normalized.venue,
+    provider: normalized.provider,
+    symbols: [...normalized.symbols],
+    instruments: normalized.instruments,
+  });
 }
 
 function listTrackIds(outputDir?: string): string[] {
@@ -407,23 +429,16 @@ export async function initTrack(
   const parsed = QuantAutoresearchInitRequestSchema.parse(request);
   const trackId = parsed.trackId ?? generateTrackId(parsed.title);
   const createdAt = nowIso();
-  const provider = parsed.provider ?? defaultProviderFor(parsed.assetClass, parsed.marketRegion);
-  const instruments =
-    parsed.instruments && parsed.instruments.length > 0
-      ? parsed.instruments
-      : resolveInstruments({
-          symbols: parsed.symbols,
-          assetClass: parsed.assetClass,
-          marketRegion: parsed.marketRegion,
-          venue: parsed.venue,
-          provider,
-        });
+  const normalized = resolveInstrumentSelection(parsed);
   const baseline = QuantAutoresearchBaselineSpecSchema.parse({
     ...parsed,
+    assetClass: normalized.assetClass,
+    marketRegion: normalized.marketRegion,
     trackId,
-    provider,
-    venue: parsed.venue ?? instruments[0]?.venue,
-    instruments,
+    provider: normalized.provider,
+    venue: normalized.venue,
+    symbols: [...normalized.symbols],
+    instruments: normalized.instruments,
     baselineRunId: null,
     baselineMetrics: {},
     createdAt,

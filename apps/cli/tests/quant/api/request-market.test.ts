@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { ServiceError } from "@tonquant/core";
-import { withResolvedInstruments } from "../../../src/quant/api/request-market";
+import {
+  resolveInstrumentSelection,
+  withResolvedInstruments,
+} from "../../../src/quant/api/request-market";
 
 describe("request-market", () => {
   test("rejects crypto requests for yfinance during instrument resolution", () => {
@@ -17,6 +20,51 @@ describe("request-market", () => {
       expect((error as ServiceError).code).toBe("QUANT_PROVIDER_UNSUPPORTED");
       expect((error as Error).message).toBe(
         "Unsupported provider 'yfinance' for market 'crypto/ton'.",
+      );
+    }
+  });
+
+  test("normalizes venue and instruments consistently for canonical market selection", () => {
+    const result = resolveInstrumentSelection({
+      symbols: ["AAPL"],
+      assetClass: "equity",
+      marketRegion: "us",
+      provider: "yfinance",
+    });
+
+    expect(result.provider).toBe("yfinance");
+    expect(result.venue).toBe("nyse");
+    expect(result.instruments[0]?.provider).toBe("yfinance");
+    expect(result.instruments[0]?.venue).toBe("nyse");
+  });
+
+  test("defaults HK market selection to runnable yfinance provider", () => {
+    const result = resolveInstrumentSelection({
+      symbols: ["0700"],
+      assetClass: "equity",
+      marketRegion: "hk",
+    });
+
+    expect(result.provider).toBe("yfinance");
+    expect(result.venue).toBe("hkex");
+    expect(result.instruments[0]?.provider).toBe("yfinance");
+    expect(result.instruments[0]?.providerSymbols.yfinance).toBe("0700.HK");
+  });
+
+  test("rejects openbb for unsupported US equity requests", () => {
+    try {
+      withResolvedInstruments({
+        symbols: ["AAPL"],
+        assetClass: "equity",
+        marketRegion: "us",
+        provider: "openbb",
+      });
+      throw new Error("Expected unsupported openbb US resolution to throw.");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ServiceError);
+      expect((error as ServiceError).code).toBe("QUANT_PROVIDER_UNSUPPORTED");
+      expect((error as Error).message).toBe(
+        "Unsupported provider 'openbb' for market 'equity/us'.",
       );
     }
   });

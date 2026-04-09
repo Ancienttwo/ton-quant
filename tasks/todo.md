@@ -64,7 +64,7 @@
 - [x] Demo video script outline (demo/script.md — 5 scenes, Phase 2 narrative)
 - [x] Demo video production (demo/recording.cast — asciinema, 656 frames)
 - [x] Quant CLI runtime architecture deep-dive (`docs/quant-cli-architecture.md`)
-- [ ] Final submission
+- [x] Final submission
 
 ## Workstream 7: Durable Autoresearch Track Core
 - [x] Add CLI-side autoresearch lifecycle service with baseline/state/history/candidate persistence
@@ -98,6 +98,24 @@
 - [x] Fix human bar-count reporting if touched by provider-backed mixed-market fetch output
 - [x] Cut Phase 1 to equities-only by rejecting `crypto + yfinance` during market resolution
 
+## Workstream 10: Provider Boundary Unification
+- [x] Add repo-local plan under `plans/plan-20260409-2345-provider-boundary-unification.md`
+- [x] Add execution contract under `tasks/contracts/provider-boundary-unification.contract.md`
+- [x] Route `quant/api/autoresearch` through the shared quant transport boundary
+- [x] Centralize provider compatibility for supported market/provider combinations
+- [x] Apply the shared provider contract to CLI resolution, backend resolution, autoresearch baselines, and presets
+- [x] Add parity regressions for supported and unsupported combinations across API and backend surfaces
+
+## Workstream 11: OpenBB Provider Phase 2
+- [x] Add repo-local plan under `plans/plan-20260409-2359-openbb-provider-phase2.md`
+- [x] Add execution contract under `tasks/contracts/openbb-provider-phase2.contract.md`
+- [x] Add OpenBB endpoint/auth configuration contract with stable error codes
+- [x] Add backend `openbb` historical-data transport for HK/CN equities
+- [x] Remove synthetic fallback from supported `provider=openbb` data flows
+- [x] Tighten canonical provider compatibility and defaults so unsupported `openbb` markets stop overclaiming support
+- [x] Align HK/CN presets with runnable default-provider behavior
+- [x] Add regression coverage for configured success, unconfigured failure, unsupported combinations, and cache identity
+
 ## Verification
 - [x] `bun typecheck` (core + cli: 0 errors; quant-backend: excluded)
 - [x] `bun lint` (cli + core: 0 errors; web: pre-existing a11y issues, out of scope)
@@ -114,6 +132,9 @@
 - [x] Docs and task files describe the same roadmap and command surface
 - [x] `bunx tsc -p apps/cli/tsconfig.json --noEmit`
 - [x] `bunx tsc -p apps/quant-backend/tsconfig.json --noEmit`
+- [x] `bun test apps/cli/tests/quant/api/request-market.test.ts apps/cli/tests/quant/api/data-fetch.test.ts apps/cli/tests/quant/api/autoresearch.test.ts apps/cli/tests/quant/autoresearch/lifecycle.test.ts apps/cli/tests/quant/backend/data.test.ts apps/cli/tests/quant/backend/openbb.test.ts apps/cli/tests/quant/backend/preset.test.ts`
+- [x] Targeted Biome check on touched OpenBB provider files
+- [x] `bash /Users/ancienttwo/.agents/skills/check/scripts/run-tests.sh` — 306 pass / 0 fail
 - [x] `bun test apps/cli/tests/quant/backend/data.test.ts apps/cli/tests/quant/backend/factor.test.ts apps/cli/tests/quant/backend/preset.test.ts apps/cli/tests/quant/orchestrator.test.ts`
 - [x] `bun test apps/cli/tests/quant/backend/data.test.ts apps/cli/tests/quant/backend/factor.test.ts apps/cli/tests/quant/backend/preset.test.ts apps/cli/tests/quant/orchestrator.test.ts apps/cli/tests/quant/runner/artifact-manager.test.ts`
 - [x] Targeted Biome check on multi-market quant files

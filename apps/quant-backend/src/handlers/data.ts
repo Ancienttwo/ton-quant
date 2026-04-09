@@ -12,6 +12,7 @@ import {
   writeDatasetDocument,
 } from "../market/datasets";
 import { resolveInstrumentsFromInput } from "../market/instruments";
+import * as openbbMarket from "../market/openbb";
 import * as yfinanceMarket from "../market/yfinance";
 
 function datasetSummary(dataset: {
@@ -41,6 +42,9 @@ async function resolveDatasetForRequest(input: {
 }) {
   if (input.instrument.provider === "yfinance") {
     return yfinanceMarket.fetchYFinanceDatasetDocument(input);
+  }
+  if (input.instrument.provider === "openbb") {
+    return openbbMarket.fetchOpenBBDatasetDocument(input);
   }
   return generateDatasetDocument(input);
 }

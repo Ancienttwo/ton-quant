@@ -17,3 +17,6 @@
 ## Provider Contracts
 
 - Do not infer third-party symbol compatibility from local pair syntax. If provider coverage depends on an explicit external ticker contract, either encode the mapping and test it or reject the combination at market resolution.
+- Do not let zero-config market defaults point at providers that require external services or credentials. Opt-in providers must stay explicit until the environment contract is guaranteed.
+- Do not transport structured backend error codes by scraping human log text. Use a dedicated machine-readable marker or payload channel, and treat remote/provider response text as untrusted input.
+- Refuse to send credential-bearing provider requests over non-HTTPS transport unless the target is an explicit local loopback endpoint.
