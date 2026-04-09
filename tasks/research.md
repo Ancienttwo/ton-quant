@@ -117,3 +117,42 @@ quant/autoresearch-runs/<runId>/
   - a TypeScript placeholder
   - a Python CLI compatible with the new runner
 - Determine testnet support posture for quant datasets
+
+## OpenAlice Borrow Review
+
+Reference baseline:
+
+- Repo: `https://github.com/TraderAlice/OpenAlice`
+- Local mirror: `/Users/ancienttwo/Projects/ton/_ref/OpenAlice`
+- Branch: `master`
+- Commit: `f44c87886f566f7e607cc7cfae180ab239d284f2`
+
+Compressed conclusions:
+
+- Highest-value borrow for TonQuant is not broker support or chat UI. It is workflow rigor: tool bridge, append-only event log, cron/listener split, heartbeat-style monitoring, and page-based workbench architecture.
+- TonQuant already has the product skeleton that matters: quant commands, factor registry, composition, alerts, reports, skill export, and a web marketplace demo. The main gap is durable long-running state, not missing commands.
+- `OpenAlice`'s `ToolCenter` pattern is a strong reference for separating domain capability exposure from provider and CLI transport. TonQuant should expose existing registry/backtest/autoresearch capabilities through a stable agent-tool layer rather than letting Commander own that contract.
+- `OpenAlice`'s event log plus cron engine is the strongest CLI-side borrowing target. TonQuant should treat scheduled autoresearch and alert evaluation as evented jobs with durable history, not ad hoc command reruns.
+- `OpenAlice`'s guard pipeline is worth adapting for factor publish/promote flows. Borrow the idea of reusable pre-execution checks, not the trading-specific UTA machinery.
+- `OpenAlice`'s frontend is useful as an architectural reference, not as a product template. TonQuant should borrow `api/ + pages/ + hooks/ + components/` separation and an events/monitoring surface, while avoiding a chat-first shell.
+
+Now shortlist:
+
+1. Add an append-only quant event log for backtests, autoresearch runs, alerts, publish/promote actions.
+2. Add a cron engine plus listener split for recurring autoresearch and alert checks.
+3. Add guard stages around factor publish/promote and other irreversible workflow transitions.
+4. Add a thin agent-tool bridge over existing quant and registry services.
+5. Replace placeholder `autoresearch init|status|list` behavior with durable track state.
+
+Later shortlist:
+
+1. Refactor `apps/web` into a workbench architecture with explicit API clients.
+2. Add pages for event history, track monitoring, and alert history.
+3. Add snapshot-style track monitoring visuals once background runs are durable.
+
+Not recommended now:
+
+1. Multi-broker UTA/trading account framework.
+2. Trading-as-git as a literal execution metaphor.
+3. Chat-first application shell.
+4. Browser-native research as a core dependency.
