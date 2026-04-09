@@ -10,6 +10,7 @@ artifacts/
 dist/
 build/
 coverage/
+_ref/
 
 # ===== Environment Variables =====
 .env

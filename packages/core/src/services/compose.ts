@@ -1,5 +1,3 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ServiceError } from "../errors.js";
 import { CONFIG_DIR } from "../types/config.js";
@@ -12,6 +10,8 @@ import {
   CompositeIndexSchema,
 } from "../types/factor-compose.js";
 import type { FactorBacktestSummary, FactorMetaPublic } from "../types/factor-registry.js";
+import { readJsonFile, writeJsonFileAtomic } from "../utils/file-store.js";
+import { mutateWithEvent } from "./event-log.js";
 import { listFactors } from "./registry.js";
 
 // ── Paths ──────────────────────────────────────────────────
@@ -115,24 +115,15 @@ export function validateComponents(
 // ── IO helpers ─────────────────────────────────────────────
 
 function readCompositeIndex(): CompositeIndex {
-  if (!existsSync(COMPOSITES_PATH)) {
-    return { version: "1.0.0", composites: [] };
-  }
-  try {
-    const raw = JSON.parse(readFileSync(COMPOSITES_PATH, "utf-8"));
-    return CompositeIndexSchema.parse(raw);
-  } catch {
-    throw new CompositionValidationError(
-      `composites.json is corrupted. Delete ${COMPOSITES_PATH} to reset.`,
-    );
-  }
+  return readJsonFile<CompositeIndex>(COMPOSITES_PATH, CompositeIndexSchema, {
+    defaultValue: { version: "1.0.0", composites: [] },
+    corruptedCode: "COMPOSITION_VALIDATION",
+    corruptedMessage: `composites.json is corrupted. Delete ${COMPOSITES_PATH} to reset.`,
+  });
 }
 
 function writeCompositeIndex(index: CompositeIndex): void {
-  mkdirSync(REGISTRY_ROOT, { recursive: true });
-  const tmp = join(tmpdir(), `composites-${Date.now()}.json.tmp`);
-  writeFileSync(tmp, JSON.stringify(index, null, 2));
-  renameSync(tmp, COMPOSITES_PATH);
+  writeJsonFileAtomic(COMPOSITES_PATH, index);
 }
 
 // ── Public API ─────────────────────────────────────────────
@@ -155,48 +146,67 @@ export function composeFactors(
     );
   }
 
-  // 3. Resolve available factors from registry
-  const allFactors = listFactors();
-  const validation = validateComponents(validated.components, allFactors);
-  if (!validation.valid) {
-    throw new CompositionValidationError(`Missing factors: ${validation.missing.join(", ")}`);
-  }
+  return mutateWithEvent({
+    paths: [COMPOSITES_PATH],
+    event: (entry) => ({
+      type: "factor.compose.save",
+      entity: { kind: "composite", id: validated.id },
+      result: "success",
+      summary: opts.force
+        ? `Updated composite ${validated.id}.`
+        : `Saved composite ${validated.id}.`,
+      payload: {
+        componentCount: entry.definition.components.length,
+        normalized: entry.definition.normalizeWeights,
+        force: Boolean(opts.force),
+      },
+    }),
+    apply: () => {
+      const allFactors = listFactors();
+      const validation = validateComponents(validated.components, allFactors);
+      if (!validation.valid) {
+        throw new CompositionValidationError(`Missing factors: ${validation.missing.join(", ")}`);
+      }
 
-  // 4. Check for duplicates
-  const compositeIndex = readCompositeIndex();
-  const existingIdx = compositeIndex.composites.findIndex((c) => c.definition.id === validated.id);
-  if (existingIdx >= 0 && !opts.force) {
-    throw new DuplicateCompositeError(validated.id);
-  }
+      const compositeIndex = readCompositeIndex();
+      const existingIdx = compositeIndex.composites.findIndex(
+        (c) => c.definition.id === validated.id,
+      );
+      if (existingIdx >= 0 && !opts.force) {
+        throw new DuplicateCompositeError(validated.id);
+      }
 
-  // 5. Normalize weights if requested
-  const finalComponents = validated.normalizeWeights
-    ? normalizeWeights(validated.components)
-    : validated.components;
+      const finalComponents = validated.normalizeWeights
+        ? normalizeWeights(validated.components)
+        : validated.components;
 
-  // 6. Resolve backtests and derive composite
-  const factorMap = new Map(allFactors.map((f) => [f.id, f]));
-  const componentBacktests = finalComponents.map((c) => ({
-    weight: c.weight,
-    backtest: factorMap.get(c.factorId)?.backtest,
-  }));
-  const derived = deriveBacktest(componentBacktests);
+      const factorMap = new Map(allFactors.map((factor) => [factor.id, factor]));
+      const componentBacktests = finalComponents.map((component) => {
+        const factor = factorMap.get(component.factorId);
+        if (!factor) {
+          throw new CompositionValidationError(`Missing factors: ${component.factorId}`);
+        }
+        return {
+          weight: component.weight,
+          backtest: factor.backtest,
+        };
+      });
+      const derived = deriveBacktest(componentBacktests);
 
-  // 7. Build entry
-  const entry: CompositeEntry = {
-    definition: { ...validated, components: finalComponents },
-    derivedBacktest: derived,
-  };
+      const entry: CompositeEntry = {
+        definition: { ...validated, components: finalComponents },
+        derivedBacktest: derived,
+      };
 
-  // 8. Save to index (immutable update)
-  const updatedComposites =
-    existingIdx >= 0
-      ? compositeIndex.composites.map((c, i) => (i === existingIdx ? entry : c))
-      : [...compositeIndex.composites, entry];
+      const updatedComposites =
+        existingIdx >= 0
+          ? compositeIndex.composites.map((composite, i) => (i === existingIdx ? entry : composite))
+          : [...compositeIndex.composites, entry];
 
-  writeCompositeIndex({ ...compositeIndex, composites: updatedComposites });
-
-  return entry;
+      writeCompositeIndex({ ...compositeIndex, composites: updatedComposites });
+      return entry;
+    },
+  });
 }
 
 export function listComposites(): CompositeEntry[] {
@@ -211,9 +221,25 @@ export function getComposite(compositeId: string): CompositeEntry {
 }
 
 export function deleteComposite(compositeId: string): boolean {
-  const index = readCompositeIndex();
-  const filtered = index.composites.filter((c) => c.definition.id !== compositeId);
-  if (filtered.length === index.composites.length) return false;
-  writeCompositeIndex({ ...index, composites: filtered });
-  return true;
+  return mutateWithEvent({
+    paths: [COMPOSITES_PATH],
+    event: (deleted) =>
+      deleted
+        ? {
+            type: "factor.compose.delete",
+            entity: { kind: "composite", id: compositeId },
+            result: "success",
+            summary: `Deleted composite ${compositeId}.`,
+          }
+        : null,
+    apply: () => {
+      const index = readCompositeIndex();
+      const filtered = index.composites.filter((c) => c.definition.id !== compositeId);
+      if (filtered.length === index.composites.length) {
+        return false;
+      }
+      writeCompositeIndex({ ...index, composites: filtered });
+      return true;
+    },
+  });
 }

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { readEvents } from "../../src/services/event-log.js";
 import { FactorNotFoundError, publishFactor } from "../../src/services/registry.js";
 import { listReports, submitReport } from "../../src/services/reports.js";
 import type { FactorMetaPublic } from "../../src/types/factor-registry.js";
@@ -34,15 +35,33 @@ function makeFactor(id: string): FactorMetaPublic {
 }
 
 const REPORTS_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "reports.json");
+const EVENT_LOG_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "test-report-events.jsonl");
+const EVENT_LOG_LOCK_PATH = `${EVENT_LOG_PATH}.lock`;
+
+function resetEventLogEnv(): void {
+  process.env.TONQUANT_EVENT_LOG_PATH = EVENT_LOG_PATH;
+  delete process.env.TONQUANT_EVENT_LOG_FAIL_APPEND;
+}
+
+function clearEventArtifacts(): void {
+  if (existsSync(EVENT_LOG_PATH)) rmSync(EVENT_LOG_PATH);
+  if (existsSync(EVENT_LOG_LOCK_PATH)) rmSync(EVENT_LOG_LOCK_PATH);
+}
 
 describe("report service", () => {
   beforeEach(() => {
+    resetEventLogEnv();
+    clearEventArtifacts();
     if (existsSync(REPORTS_PATH)) rmSync(REPORTS_PATH);
     publishFactor(makeFactor("report_test_factor"), { force: true });
+    clearEventArtifacts();
   });
 
   afterEach(() => {
     if (existsSync(REPORTS_PATH)) rmSync(REPORTS_PATH);
+    clearEventArtifacts();
+    delete process.env.TONQUANT_EVENT_LOG_PATH;
+    delete process.env.TONQUANT_EVENT_LOG_FAIL_APPEND;
   });
 
   it("submits a performance report", () => {
@@ -57,6 +76,24 @@ describe("report service", () => {
   it("defaults agentId to anonymous", () => {
     const report = submitReport("report_test_factor", 10.0, "7d");
     expect(report.agentId).toBe("anonymous");
+  });
+
+  it("appends an audit event when a report is submitted", () => {
+    submitReport("report_test_factor", 15.5, "30d", "agent_001");
+
+    const events = readEvents({ type: "factor.report.submit" });
+    expect(events.length).toBe(1);
+    expect(events[0]?.entity.id).toBe("report_test_factor");
+  });
+
+  it("rolls back report writes when event append fails", () => {
+    process.env.TONQUANT_EVENT_LOG_FAIL_APPEND = "1";
+
+    expect(() => submitReport("report_test_factor", 10.0, "7d")).toThrow(
+      "Injected event log append failure.",
+    );
+    expect(listReports()).toEqual([]);
+    expect(readEvents()).toEqual([]);
   });
 
   it("throws for nonexistent factor", () => {

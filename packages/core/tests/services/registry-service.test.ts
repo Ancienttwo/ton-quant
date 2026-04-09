@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { readEvents } from "../../src/services/event-log.js";
 import {
   DuplicateFactorError,
   discoverFactors,
@@ -46,6 +47,29 @@ function makeFactor(id: string, overrides: Partial<FactorMetaPublic> = {}): Fact
 const REGISTRY_ROOT = join(process.env.HOME ?? "/tmp", ".tonquant", "registry");
 const INDEX_PATH = join(REGISTRY_ROOT, "factors.json");
 const SUBS_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "subscriptions.json");
+const EVENT_LOG_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "test-registry-events.jsonl");
+const EVENT_LOG_LOCK_PATH = `${EVENT_LOG_PATH}.lock`;
+
+function resetEventLogEnv(): void {
+  process.env.TONQUANT_EVENT_LOG_PATH = EVENT_LOG_PATH;
+  delete process.env.TONQUANT_EVENT_LOG_FAIL_APPEND;
+}
+
+function clearEventArtifacts(): void {
+  if (existsSync(EVENT_LOG_PATH)) rmSync(EVENT_LOG_PATH);
+  if (existsSync(EVENT_LOG_LOCK_PATH)) rmSync(EVENT_LOG_LOCK_PATH);
+}
+
+beforeEach(() => {
+  resetEventLogEnv();
+  clearEventArtifacts();
+});
+
+afterEach(() => {
+  clearEventArtifacts();
+  delete process.env.TONQUANT_EVENT_LOG_PATH;
+  delete process.env.TONQUANT_EVENT_LOG_FAIL_APPEND;
+});
 
 // ============================================================
 // Service Tests
@@ -64,6 +88,14 @@ describe("registry service — publishFactor", () => {
     expect(all.some((f) => f.id === "pub_test_aaa")).toBe(true);
   });
 
+  it("appends an audit event on publish", () => {
+    publishFactor(makeFactor("pub_event_test"));
+
+    const events = readEvents({ type: "factor.publish" });
+    expect(events.length).toBe(1);
+    expect(events[0]?.entity.id).toBe("pub_event_test");
+  });
+
   it("throws DuplicateFactorError without --force", () => {
     publishFactor(makeFactor("pub_dup_test"));
     expect(() => publishFactor(makeFactor("pub_dup_test"))).toThrow(DuplicateFactorError);
@@ -75,6 +107,16 @@ describe("registry service — publishFactor", () => {
       force: true,
     });
     expect(updated.description).toBe("v2");
+  });
+
+  it("rolls back factor state when event append fails", () => {
+    process.env.TONQUANT_EVENT_LOG_FAIL_APPEND = "1";
+
+    expect(() => publishFactor(makeFactor("pub_rollback_test"))).toThrow(
+      "Injected event log append failure.",
+    );
+    expect(listFactors().some((factor) => factor.id === "pub_rollback_test")).toBe(false);
+    expect(readEvents()).toEqual([]);
   });
 });
 
@@ -163,6 +205,7 @@ describe("registry service — subscribeFactor", () => {
     if (existsSync(INDEX_PATH)) rmSync(INDEX_PATH);
     if (existsSync(SUBS_PATH)) rmSync(SUBS_PATH);
     publishFactor(makeFactor("sub_test_fac"));
+    clearEventArtifacts();
   });
 
   afterEach(() => {
@@ -182,6 +225,31 @@ describe("registry service — subscribeFactor", () => {
     expect(second.subscribedAt).toBe(first.subscribedAt);
   });
 
+  it("does not append a new event for idempotent re-subscribe", () => {
+    subscribeFactor("sub_test_fac");
+    clearEventArtifacts();
+
+    subscribeFactor("sub_test_fac");
+
+    expect(readEvents()).toEqual([]);
+  });
+
+  it("appends an audit event when a subscription is created", () => {
+    subscribeFactor("sub_test_fac");
+
+    const events = readEvents({ type: "factor.subscribe" });
+    expect(events.length).toBe(1);
+    expect(events[0]?.entity.id).toBe("sub_test_fac");
+  });
+
+  it("rolls back subscriptions when event append fails", () => {
+    process.env.TONQUANT_EVENT_LOG_FAIL_APPEND = "1";
+
+    expect(() => subscribeFactor("sub_test_fac")).toThrow("Injected event log append failure.");
+    expect(listFactors({ subscribedOnly: true })).toEqual([]);
+    expect(readEvents()).toEqual([]);
+  });
+
   it("throws FactorNotFoundError for unknown factor", () => {
     expect(() => subscribeFactor("nonexistent_xyz")).toThrow(FactorNotFoundError);
   });
@@ -192,7 +260,9 @@ describe("registry service — unsubscribeFactor", () => {
     if (existsSync(INDEX_PATH)) rmSync(INDEX_PATH);
     if (existsSync(SUBS_PATH)) rmSync(SUBS_PATH);
     publishFactor(makeFactor("unsub_test_f"));
+    clearEventArtifacts();
     subscribeFactor("unsub_test_f");
+    clearEventArtifacts();
   });
 
   afterEach(() => {
@@ -203,8 +273,31 @@ describe("registry service — unsubscribeFactor", () => {
     expect(unsubscribeFactor("unsub_test_f")).toBe(true);
   });
 
+  it("appends an audit event when unsubscribing", () => {
+    unsubscribeFactor("unsub_test_f");
+
+    const events = readEvents({ type: "factor.unsubscribe" });
+    expect(events.length).toBe(1);
+    expect(events[0]?.entity.id).toBe("unsub_test_f");
+  });
+
+  it("rolls back unsubscription when event append fails", () => {
+    process.env.TONQUANT_EVENT_LOG_FAIL_APPEND = "1";
+
+    expect(() => unsubscribeFactor("unsub_test_f")).toThrow("Injected event log append failure.");
+    expect(listFactors({ subscribedOnly: true }).map((factor) => factor.id)).toEqual([
+      "unsub_test_f",
+    ]);
+    expect(readEvents()).toHaveLength(0);
+  });
+
   it("returns false for unknown factorId", () => {
     expect(unsubscribeFactor("no_such_sub")).toBe(false);
+  });
+
+  it("does not append an event for no-op unsubscribe", () => {
+    expect(unsubscribeFactor("no_such_sub")).toBe(false);
+    expect(readEvents()).toEqual([]);
   });
 });
 

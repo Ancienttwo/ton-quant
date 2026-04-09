@@ -11,8 +11,8 @@
     "typecheck": "tsc -b packages/core/tsconfig.json apps/cli/tsconfig.json",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "test": "bun test",
-    "test:coverage": "bun test --coverage"
+    "test": "bun test --max-concurrency 1 --path-ignore-patterns '_ref/**'",
+    "test:coverage": "bun test --coverage --max-concurrency 1 --path-ignore-patterns '_ref/**'"
   },
   "devDependencies": {
     "@biomejs/biome": "latest",

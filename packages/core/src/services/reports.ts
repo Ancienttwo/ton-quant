@@ -1,6 +1,3 @@
-import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ServiceError } from "../errors.js";
 import { CONFIG_DIR } from "../types/config.js";
@@ -9,6 +6,8 @@ import {
   FactorPerformanceReportSchema,
   ReportsFileSchema,
 } from "../types/factor-registry.js";
+import { readJsonFile, writeJsonFileAtomic } from "../utils/file-store.js";
+import { mutateWithEvent } from "./event-log.js";
 import { getFactorDetail } from "./registry.js";
 
 // ── Constants ──────────────────────────────────────────────
@@ -26,23 +25,15 @@ export class ReportValidationError extends ServiceError {
 // ── IO helpers ─────────────────────────────────────────────
 
 function readReports(): FactorPerformanceReport[] {
-  if (!existsSync(REPORTS_PATH)) return [];
-  try {
-    const raw = JSON.parse(readFileSync(REPORTS_PATH, "utf-8"));
-    return ReportsFileSchema.parse(raw).reports;
-  } catch {
-    throw new ServiceError(
-      `reports.json is corrupted. Delete ${REPORTS_PATH} to reset.`,
-      "REPORTS_CORRUPTED",
-    );
-  }
+  return readJsonFile<{ reports: FactorPerformanceReport[] }>(REPORTS_PATH, ReportsFileSchema, {
+    defaultValue: { reports: [] },
+    corruptedCode: "REPORTS_CORRUPTED",
+    corruptedMessage: `reports.json is corrupted. Delete ${REPORTS_PATH} to reset.`,
+  }).reports;
 }
 
 function writeReports(reports: ReadonlyArray<FactorPerformanceReport>): void {
-  mkdirSync(join(CONFIG_DIR), { recursive: true });
-  const tmp = join(tmpdir(), `reports-${Date.now()}-${randomBytes(4).toString("hex")}.json.tmp`);
-  writeFileSync(tmp, JSON.stringify({ reports }, null, 2));
-  renameSync(tmp, REPORTS_PATH);
+  writeJsonFileAtomic(REPORTS_PATH, { reports });
 }
 
 // ── Public API ─────────────────────────────────────────────
@@ -53,24 +44,41 @@ export function submitReport(
   period: string,
   agentId?: string,
 ): FactorPerformanceReport {
-  // Validate factor exists
-  getFactorDetail(factorId);
+  return mutateWithEvent({
+    paths: [REPORTS_PATH],
+    event: (report) => ({
+      type: "factor.report.submit",
+      entity: { kind: "factor", id: factorId },
+      result: "success",
+      summary: `Submitted ${period} report for factor ${factorId}.`,
+      payload: {
+        agentId: report.agentId,
+        period,
+        returnPct,
+      },
+    }),
+    apply: () => {
+      getFactorDetail(factorId);
 
-  const report = FactorPerformanceReportSchema.parse({
-    factorId,
-    agentId: agentId ?? "anonymous",
-    returnPct,
-    period,
-    reportedAt: new Date().toISOString(),
-    verified: false,
+      const report = FactorPerformanceReportSchema.parse({
+        factorId,
+        agentId: agentId ?? "anonymous",
+        returnPct,
+        period,
+        reportedAt: new Date().toISOString(),
+        verified: false,
+      });
+
+      const existing = readReports();
+      const trimmed =
+        existing.length >= MAX_REPORTS
+          ? existing.slice(existing.length - MAX_REPORTS + 1)
+          : existing;
+
+      writeReports([...trimmed, report]);
+      return report;
+    },
   });
-
-  const existing = readReports();
-  // Trim oldest reports if exceeding cap
-  const trimmed =
-    existing.length >= MAX_REPORTS ? existing.slice(existing.length - MAX_REPORTS + 1) : existing;
-  writeReports([...trimmed, report]);
-  return report;
 }
 
 export function listReports(factorId?: string): FactorPerformanceReport[] {

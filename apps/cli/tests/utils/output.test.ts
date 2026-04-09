@@ -1,5 +1,29 @@
-import { describe, expect, test } from "bun:test";
-import { CliCommandError, formatError, formatOutput } from "../../src/utils/output.js";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { EventLogWriteError } from "@tonquant/core";
+import {
+  CliCommandError,
+  formatError,
+  formatOutput,
+  handleCommand,
+} from "../../src/utils/output.js";
+
+let stderrWriteSpy: ReturnType<typeof spyOn>;
+let stdoutWriteSpy: ReturnType<typeof spyOn>;
+let exitSpy: ReturnType<typeof spyOn>;
+
+beforeEach(() => {
+  stderrWriteSpy = spyOn(process.stderr, "write").mockImplementation(() => true);
+  stdoutWriteSpy = spyOn(process.stdout, "write").mockImplementation(() => true);
+  exitSpy = spyOn(process, "exit").mockImplementation(((code?: number) => {
+    throw new Error(`EXIT:${code ?? 0}`);
+  }) as never);
+});
+
+afterEach(() => {
+  stderrWriteSpy.mockRestore();
+  stdoutWriteSpy.mockRestore();
+  exitSpy.mockRestore();
+});
 
 describe("formatOutput", () => {
   test("returns JSON envelope when json option is true", () => {
@@ -52,5 +76,27 @@ describe("CliCommandError", () => {
     expect(error.message).toBe("test message");
     expect(error.code).toBe("TEST_CODE");
     expect(error instanceof Error).toBe(true);
+  });
+});
+
+describe("handleCommand", () => {
+  test("preserves ServiceError codes in JSON output", async () => {
+    await expect(
+      handleCommand(
+        { json: true },
+        async () => {
+          throw new EventLogWriteError("Injected event log append failure.");
+        },
+        undefined,
+      ),
+    ).rejects.toThrow("EXIT:1");
+
+    const output = stderrWriteSpy.mock.calls[0]?.[0];
+    expect(typeof output).toBe("string");
+
+    const parsed = JSON.parse(String(output).trim());
+    expect(parsed.status).toBe("error");
+    expect(parsed.code).toBe("EVENT_LOG_WRITE_FAILED");
+    expect(parsed.code).not.toBe("UNKNOWN_ERROR");
   });
 });

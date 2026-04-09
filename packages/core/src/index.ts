@@ -32,6 +32,17 @@ export {
   validateComponents,
 } from "./services/compose.js";
 export {
+  appendEvent,
+  EVENT_LOG_PATH,
+  EventLogCorruptedError,
+  EventLogLockError,
+  EventLogRollbackError,
+  EventLogWriteError,
+  mutateWithEvent,
+  queryEvents,
+  readEvents,
+} from "./services/event-log.js";
+export {
   fetchBalanceData,
   fetchHistoryData,
   fetchPoolData,
@@ -120,6 +131,26 @@ export {
   TrendingDataSchema,
   TrendingTokenSchema,
 } from "./types/data.js";
+export type {
+  EventEntity,
+  EventLogAppendInput,
+  EventLogEntry,
+  EventLogQueryInput,
+  EventLogQueryResult,
+  EventLogReadInput,
+  EventPayload,
+  EventResult,
+} from "./types/event-log.js";
+export {
+  EventEntitySchema,
+  EventLogAppendInputSchema,
+  EventLogEntrySchema,
+  EventLogQueryInputSchema,
+  EventLogQueryResultSchema,
+  EventLogReadInputSchema,
+  EventPayloadSchema,
+  EventResultSchema,
+} from "./types/event-log.js";
 // Factor Compose Types
 export type {
   ComponentWeight,

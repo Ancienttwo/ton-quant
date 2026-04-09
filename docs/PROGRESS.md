@@ -13,3 +13,4 @@
 | 2026-03-23 | CLI commands: data, factor, backtest, preset, autoresearch wired | Done |
 | 2026-03-23 | Code quality: spawn adapter, JSON.parse error handling, resolve-cli fallback | Done |
 | 2026-03-23 | Tests: 101→135, quant backend + runner + orchestrator covered | Done |
+| 2026-04-09 | Local audit event log: append-only event bus, rollback-on-append-failure, marketplace state-change coverage | Done |

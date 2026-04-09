@@ -13,6 +13,7 @@ import {
   normalizeWeights,
   validateComponents,
 } from "../../src/services/compose.js";
+import { readEvents } from "../../src/services/event-log.js";
 import { publishFactor } from "../../src/services/registry.js";
 import {
   ComponentWeightSchema,
@@ -55,6 +56,22 @@ function makeFactor(id: string, overrides: Partial<FactorMetaPublic> = {}): Fact
 }
 
 const now = "2026-03-24T10:00:00Z";
+const EVENT_LOG_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "test-compose-events.jsonl");
+const EVENT_LOG_LOCK_PATH = `${EVENT_LOG_PATH}.lock`;
+
+function resetEventLogEnv(): void {
+  process.env.TONQUANT_EVENT_LOG_PATH = EVENT_LOG_PATH;
+  delete process.env.TONQUANT_EVENT_LOG_FAIL_APPEND;
+}
+
+function clearEventArtifacts(): void {
+  if (existsSync(EVENT_LOG_PATH)) {
+    rmSync(EVENT_LOG_PATH);
+  }
+  if (existsSync(EVENT_LOG_LOCK_PATH)) {
+    rmSync(EVENT_LOG_LOCK_PATH);
+  }
+}
 
 // ============================================================
 // Schema Tests
@@ -315,6 +332,8 @@ describe("compose service integration", () => {
 
   // Seed two factors before each test
   beforeEach(() => {
+    resetEventLogEnv();
+    clearEventArtifacts();
     // Clean composites file
     if (existsSync(TEST_COMPOSITES)) {
       rmSync(TEST_COMPOSITES);
@@ -335,12 +354,16 @@ describe("compose service integration", () => {
       }),
       { force: true },
     );
+    clearEventArtifacts();
   });
 
   afterEach(() => {
     if (existsSync(TEST_COMPOSITES)) {
       rmSync(TEST_COMPOSITES);
     }
+    clearEventArtifacts();
+    delete process.env.TONQUANT_EVENT_LOG_PATH;
+    delete process.env.TONQUANT_EVENT_LOG_FAIL_APPEND;
   });
 
   it("composes two factors successfully", () => {
@@ -360,6 +383,46 @@ describe("compose service integration", () => {
     expect(entry.definition.id).toBe("mom_vol_blend");
     expect(entry.derivedBacktest.sharpe).toBeCloseTo(1.3); // 0.6*1.5 + 0.4*1.0
     expect(entry.derivedBacktest.maxDrawdown).toBe(-0.2);
+  });
+
+  it("appends an audit event when saving a composite", () => {
+    composeFactors({
+      id: "event_blend",
+      name: "Event",
+      description: "Event test",
+      components: [
+        { factorId: "alpha_mom", weight: 0.5 },
+        { factorId: "beta_vol", weight: 0.5 },
+      ],
+      normalizeWeights: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const events = readEvents({ type: "factor.compose.save" });
+    expect(events.length).toBe(1);
+    expect(events[0]?.entity.id).toBe("event_blend");
+  });
+
+  it("rolls back composite saves when event append fails", () => {
+    process.env.TONQUANT_EVENT_LOG_FAIL_APPEND = "1";
+
+    expect(() =>
+      composeFactors({
+        id: "rollback_blend",
+        name: "Rollback",
+        description: "Rollback test",
+        components: [
+          { factorId: "alpha_mom", weight: 0.5 },
+          { factorId: "beta_vol", weight: 0.5 },
+        ],
+        normalizeWeights: true,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ).toThrow("Injected event log append failure.");
+    expect(listComposites()).toEqual([]);
+    expect(readEvents()).toEqual([]);
   });
 
   it("rejects self-referencing composite", () => {
@@ -500,5 +563,55 @@ describe("compose service integration", () => {
     expect(deleteComposite("del_blend")).toBe(true);
     expect(deleteComposite("del_blend")).toBe(false);
     expect(listComposites().length).toBe(0);
+  });
+
+  it("does not append an event for no-op composite deletion", () => {
+    expect(deleteComposite("missing_blend")).toBe(false);
+    expect(readEvents()).toEqual([]);
+  });
+
+  it("appends an audit event when deleting a composite", () => {
+    composeFactors({
+      id: "del_event_blend",
+      name: "Delete Event",
+      description: "Delete event test",
+      components: [
+        { factorId: "alpha_mom", weight: 0.5 },
+        { factorId: "beta_vol", weight: 0.5 },
+      ],
+      normalizeWeights: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    clearEventArtifacts();
+
+    deleteComposite("del_event_blend");
+
+    const events = readEvents({ type: "factor.compose.delete" });
+    expect(events.length).toBe(1);
+    expect(events[0]?.entity.id).toBe("del_event_blend");
+  });
+
+  it("rolls back composite deletion when event append fails", () => {
+    composeFactors({
+      id: "del_rollback_blend",
+      name: "Delete Rollback",
+      description: "Delete rollback test",
+      components: [
+        { factorId: "alpha_mom", weight: 0.5 },
+        { factorId: "beta_vol", weight: 0.5 },
+      ],
+      normalizeWeights: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    clearEventArtifacts();
+    process.env.TONQUANT_EVENT_LOG_FAIL_APPEND = "1";
+
+    expect(() => deleteComposite("del_rollback_blend")).toThrow(
+      "Injected event log append failure.",
+    );
+    expect(listComposites().map((entry) => entry.definition.id)).toEqual(["del_rollback_blend"]);
+    expect(readEvents()).toEqual([]);
   });
 });

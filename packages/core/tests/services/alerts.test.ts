@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { listAlerts, removeAlert, setAlert } from "../../src/services/alerts.js";
+import { readEvents } from "../../src/services/event-log.js";
 import { FactorNotFoundError, publishFactor } from "../../src/services/registry.js";
 import type { FactorMetaPublic } from "../../src/types/factor-registry.js";
 
@@ -34,15 +35,33 @@ function makeFactor(id: string): FactorMetaPublic {
 }
 
 const ALERTS_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "alerts.json");
+const EVENT_LOG_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "test-alert-events.jsonl");
+const EVENT_LOG_LOCK_PATH = `${EVENT_LOG_PATH}.lock`;
+
+function resetEventLogEnv(): void {
+  process.env.TONQUANT_EVENT_LOG_PATH = EVENT_LOG_PATH;
+  delete process.env.TONQUANT_EVENT_LOG_FAIL_APPEND;
+}
+
+function clearEventArtifacts(): void {
+  if (existsSync(EVENT_LOG_PATH)) rmSync(EVENT_LOG_PATH);
+  if (existsSync(EVENT_LOG_LOCK_PATH)) rmSync(EVENT_LOG_LOCK_PATH);
+}
 
 describe("alert service", () => {
   beforeEach(() => {
+    resetEventLogEnv();
+    clearEventArtifacts();
     if (existsSync(ALERTS_PATH)) rmSync(ALERTS_PATH);
     publishFactor(makeFactor("alert_test_factor"), { force: true });
+    clearEventArtifacts();
   });
 
   afterEach(() => {
     if (existsSync(ALERTS_PATH)) rmSync(ALERTS_PATH);
+    clearEventArtifacts();
+    delete process.env.TONQUANT_EVENT_LOG_PATH;
+    delete process.env.TONQUANT_EVENT_LOG_FAIL_APPEND;
   });
 
   it("sets an alert for an existing factor", () => {
@@ -66,6 +85,24 @@ describe("alert service", () => {
     );
     expect(matching.length).toBe(1);
     expect(matching[0]?.threshold).toBe(2.0);
+  });
+
+  it("appends an audit event when setting an alert", () => {
+    setAlert("alert_test_factor", "above", 1.5);
+
+    const events = readEvents({ type: "factor.alert.set" });
+    expect(events.length).toBe(1);
+    expect(events[0]?.entity.id).toBe("alert_test_factor");
+  });
+
+  it("rolls back alert writes when event append fails", () => {
+    process.env.TONQUANT_EVENT_LOG_FAIL_APPEND = "1";
+
+    expect(() => setAlert("alert_test_factor", "above", 1.5)).toThrow(
+      "Injected event log append failure.",
+    );
+    expect(listAlerts()).toEqual([]);
+    expect(readEvents()).toEqual([]);
   });
 
   it("allows different conditions for same factor", () => {
@@ -97,7 +134,33 @@ describe("alert service", () => {
     expect(alerts.length).toBe(0);
   });
 
+  it("appends an audit event when removing alerts", () => {
+    setAlert("alert_test_factor", "above", 1.5);
+    clearEventArtifacts();
+
+    removeAlert("alert_test_factor");
+
+    const events = readEvents({ type: "factor.alert.remove" });
+    expect(events.length).toBe(1);
+    expect(events[0]?.payload?.removedCount).toBe(1);
+  });
+
+  it("rolls back alert removal when event append fails", () => {
+    setAlert("alert_test_factor", "above", 1.5);
+    clearEventArtifacts();
+    process.env.TONQUANT_EVENT_LOG_FAIL_APPEND = "1";
+
+    expect(() => removeAlert("alert_test_factor")).toThrow("Injected event log append failure.");
+    expect(listAlerts().map((alert) => alert.factorId)).toEqual(["alert_test_factor"]);
+    expect(readEvents()).toEqual([]);
+  });
+
   it("returns false when removing nonexistent alert", () => {
     expect(removeAlert("no_such_alert")).toBe(false);
+  });
+
+  it("does not append an event for no-op alert removal", () => {
+    expect(removeAlert("no_such_alert")).toBe(false);
+    expect(readEvents()).toEqual([]);
   });
 });

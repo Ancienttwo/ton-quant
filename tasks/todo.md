@@ -39,6 +39,16 @@
 - [x] OpenClaw skill packaging (`factor skill-export`)
 - [x] Phase 2 stabilization — fix TS errors, add registry service tests (229 tests, 0 failures)
 
+## Workstream 4.6: Local Audit Event Log
+- [x] Add global append-only event log service in `packages/core/src/services/event-log.ts`
+- [x] Add shared file persistence helpers for atomic JSON writes and rollback snapshots
+- [x] Wire factor publish / subscribe / unsubscribe through state+event transaction boundaries
+- [x] Wire factor alert set / remove through state+event transaction boundaries
+- [x] Wire factor report submit through state+event transaction boundaries
+- [x] Wire factor compose save / delete through state+event transaction boundaries
+- [x] Export event log types and service API from `packages/core/src/index.ts`
+- [x] Add service and CLI regression tests for event append, filtering, rollback, lock timeout, and JSON error codes
+
 ## Workstream 5: Support Command Stabilization
 - [x] Finish and verify current support-command work:
   - `price`, `pools`, `trending` — stable (command + test + formatter)
@@ -59,5 +69,9 @@
 - [x] `bun typecheck` (core + cli: 0 errors; quant-backend: excluded)
 - [x] `bun lint` (cli + core: 0 errors; web: pre-existing a11y issues, out of scope)
 - [x] `bun test` — 235 tests, 0 failures
+- [x] Event-log regression suite — 98 targeted tests, 0 failures
+- [x] Scoped Biome check on touched event-log files
+- [ ] Full `bun typecheck` currently blocked by pre-existing `packages/core/tests/services/skill-export.test.ts` errors
+- [ ] Full `bun lint` currently blocked by pre-existing `apps/web` import ordering, a11y, and React hook diagnostics
 - [x] `bun run apps/cli/src/index.ts --help` — Phase 1+2 command groups visible
 - [x] Docs and task files describe the same roadmap and command surface
