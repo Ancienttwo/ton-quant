@@ -63,7 +63,25 @@
 - [x] Terminal output visual polish (format.ts unified with format-helpers.ts header/divider)
 - [x] Demo video script outline (demo/script.md — 5 scenes, Phase 2 narrative)
 - [x] Demo video production (demo/recording.cast — asciinema, 656 frames)
+- [x] Quant CLI runtime architecture deep-dive (`docs/quant-cli-architecture.md`)
 - [ ] Final submission
+
+## Workstream 7: Durable Autoresearch Track Core
+- [x] Add CLI-side autoresearch lifecycle service with baseline/state/history/candidate persistence
+- [x] Replace `autoresearch init|status|list` placeholders with real track-backed behavior
+- [x] Refactor `autoresearch run` to execute against persisted tracks and emit durable candidates
+- [x] Add `autoresearch promote|reject` review loop commands
+- [x] Append autoresearch lifecycle events to the global audit log
+- [x] Upgrade autoresearch formatter to track-aware human output
+- [x] Add autoresearch lifecycle and formatter regression tests
+
+## Workstream 8: Quant Multi-Market Layering
+- [x] Replace TON-only market typing with `assetClass`, `marketRegion`, `venue`, `provider`, and `InstrumentRef`
+- [x] Add CLI-side market resolution for crypto, US equities, Hong Kong equities, and A-shares
+- [x] Normalize backend datasets with instrument/provider/calendar metadata and market-specific annualization
+- [x] Expose market-selection flags on `data`, `factor`, `backtest`, and `autoresearch init`
+- [x] Add HK and CN equity presets alongside TON and US equity presets
+- [x] Add targeted backend and orchestrator regression coverage for HK/CN flows
 
 ## Verification
 - [x] `bun typecheck` (core + cli: 0 errors; quant-backend: excluded)
@@ -74,4 +92,14 @@
 - [ ] Full `bun typecheck` currently blocked by pre-existing `packages/core/tests/services/skill-export.test.ts` errors
 - [ ] Full `bun lint` currently blocked by pre-existing `apps/web` import ordering, a11y, and React hook diagnostics
 - [x] `bun run apps/cli/src/index.ts --help` — Phase 1+2 command groups visible
+- [x] `bun test --max-concurrency 1 apps/cli/tests/quant/autoresearch/lifecycle.test.ts apps/cli/tests/utils/format.test.ts apps/cli/tests/quant/orchestrator.test.ts`
+- [x] `bun run apps/cli/src/index.ts autoresearch --help` — durable lifecycle subcommands visible
+- [x] Targeted Biome check on autoresearch lifecycle, CLI, formatter, and tests
+- [x] Targeted TS check on new autoresearch files (full app check still blocked by pre-existing quant-backend and backend-test issues)
 - [x] Docs and task files describe the same roadmap and command surface
+- [x] `bunx tsc -p apps/cli/tsconfig.json --noEmit`
+- [x] `bunx tsc -p apps/quant-backend/tsconfig.json --noEmit`
+- [x] `bun test apps/cli/tests/quant/backend/data.test.ts apps/cli/tests/quant/backend/factor.test.ts apps/cli/tests/quant/backend/preset.test.ts apps/cli/tests/quant/orchestrator.test.ts`
+- [x] Targeted Biome check on multi-market quant files
+- [ ] Full `bun typecheck` currently blocked by pre-existing `packages/core/tests/services/skill-export.test.ts` errors
+- [ ] Full `bun lint` currently blocked by pre-existing `apps/web` import ordering, a11y, and React hook diagnostics

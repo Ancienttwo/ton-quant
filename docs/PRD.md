@@ -1,20 +1,20 @@
-# TonQuant PRD v4 — TON Factor Marketplace
+# TonQuant PRD v4 — Multi-Market Research Runtime, TON Factor Marketplace
 
 ## 1. Overview
 
 ### 1.1 Product
 
-**TonQuant** is an agent-native factor marketplace for TON, built as a CLI-first platform.
+**TonQuant** is a CLI-first multi-market quant research runtime with a TON-native factor marketplace and execution surface.
 
 It ships in three stages:
 
 - **Phase 0**: lightweight TON DeFi support commands for market inspection and wallet workflows
-- **Phase 1**: quant-first workflows for data fetch, factor computation, backtesting, presets, and autoresearch
-- **Phase 2**: factor marketplace — registry, leaderboard, composition, backtest verification, alerts, and social proof
+- **Phase 1**: multi-market quant-first workflows for data fetch, factor computation, backtesting, presets, and autoresearch
+- **Phase 2**: TON factor marketplace — registry, leaderboard, composition, backtest verification, alerts, and social proof
 
 ### 1.2 One-line Description
 
-TonQuant is “npm for trading factors” — an open protocol where AI Agents discover, compose, validate, and publish quantitative factors for TON markets.
+TonQuant is “npm for trading factors” — an open protocol where AI Agents discover, compose, validate, and publish quantitative factors, with research spanning multiple markets and factor trading/distribution landing on TON first.
 
 ### 1.3 Product Thesis
 
@@ -27,9 +27,14 @@ The repo should not stop at “quant research tooling.” The differentiator is 
 - **open factor registry** that any AI Agent framework can natively consume
 - **factor economics**: factors decay slower than strategies, are composable, and form a natural marketplace unit
 
+The core architectural split is:
+
+- a market-agnostic research runtime for datasets, factors, backtests, and autoresearch
+- a TON-native execution and distribution layer for factor publication, alerts, reports, and marketplace discovery
+
 ### 1.4 Vision
 
-User says “find me alpha in TON” → AI Agent searches registry → finds top factors → composes into strategy → backtests → presents results. Other agents validate with real trading. Factor creators earn passive income. New factors auto-generated from market anomalies. The entire system is self-improving.
+User says “find me alpha” → AI Agent searches the research runtime for datasets and factors across markets → composes a strategy → backtests → presents results. The best tradeable factors are published into the TON registry and validated with real trading. Factor creators earn passive income. New factors are auto-generated from market anomalies. The entire system is self-improving.
 
 ### 1.5 Users
 
@@ -63,7 +68,7 @@ Role:
 
 ## 2.2 Phase 1 — Quant Command Surface
 
-These become the main product:
+These become the main product surface for the multi-market research runtime:
 
 - `tonquant data fetch|list|info`
 - `tonquant factor list|compute`
@@ -80,7 +85,7 @@ Phase 1.5 or later:
 
 ## 2.3 Phase 2 — Factor Marketplace
 
-The main product direction post-hackathon. Transforms TonQuant from a research CLI into an agent-native factor marketplace.
+The main product direction post-hackathon. Transforms TonQuant from a research CLI into a TON-native factor marketplace layered on top of the research runtime.
 
 ### Factor Registry Core
 
@@ -158,6 +163,8 @@ This surface is designed to be compatible with the `comp-agent` quant boundary w
 - artifact ownership
 - autoresearch state model
 
+This is the multi-market research core. TON-specific execution, wallet, and marketplace behavior should sit above or beside this boundary, not inside it.
+
 ## 3.3 Factor Registry Surface
 
 Factor marketplace commands are owned by `packages/core/src/services/registry.ts` and `packages/core/src/types/factor-registry.ts`:
@@ -174,9 +181,9 @@ apps/cli/src/cli/
 
 Phase 2 registry is **local-first** (JSON file at `~/.tonquant/registry/`), with remote API deferred to Phase 3.
 
-## 3.4 Optional Backend
+## 3.4 Backend
 
-The first execution backend is planned, not shipped in this pass. The runner assumes a future backend such as a Python CLI exposed over JSON-over-stdio.
+The current execution backend is the Bun-based `apps/quant-backend` CLI, reached over JSON-over-stdio. The runner also keeps a stable seam for a future Python CLI or other backend implementation without changing the public command surface.
 
 ## 4. Quant Artifact And State Contract
 
@@ -294,7 +301,7 @@ The stable TypeScript runner boundary includes:
 
 `data fetch` is the mandatory precursor for factor, backtest, and autoresearch.
 
-The dataset contract must support TON-specific market data assembly from STON.fi and related TON sources. This PRD does not lock the final file format yet, but it does lock the responsibility boundary:
+The dataset contract must support multi-market data assembly. TON market data from STON.fi and related TON sources is the first strong adapter, not the only target. This PRD does not lock the final file format yet, but it does lock the responsibility boundary:
 
 - support commands may read live APIs directly
 - quant commands operate on fetched or derived datasets with durable artifacts
@@ -339,7 +346,7 @@ tonquant autoresearch status --track trk_not_momo --json
 1. repo-local replan and workflow alignment
 2. `src/quant/` type/api/runner boundary
 3. Phase 1 command-group contract on the CLI surface
-4. docs updated to describe the same product
+4. docs updated to describe the same product split: multi-market research core + TON marketplace
 
 ## 8.2 Phase 1.5 (Post-hackathon quant infra)
 
@@ -370,7 +377,7 @@ Implementation order per CEO review:
 - Factor of the Day auto-recommendation
 - Web UI / full marketplace platform
 - Payment infrastructure and revenue split
-- Multi-asset support (US stocks, ETH)
+- Broader market coverage and deeper provider adapters (US equities, ETH, bonds)
 - Author identity/authentication system
 - Remote registry API (local JSON first)
 - Signal evaluation implementation
