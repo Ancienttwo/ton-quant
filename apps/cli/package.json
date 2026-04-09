@@ -4,10 +4,11 @@
   "description": "AI-native quant research CLI for the TON blockchain",
   "type": "module",
   "bin": {
-    "tonquant": "./src/index.ts"
+    "tonquant": "./dist/index.js"
   },
   "files": [
-    "src/",
+    "dist/index.js",
+    "dist/quant-backend.js",
     "README.md"
   ],
   "keywords": [
@@ -30,19 +31,19 @@
   "author": "ancienttwo",
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "build": "bun run scripts/build-package.ts",
+    "pack:smoke": "bun run scripts/smoke-pack.ts",
+    "prepack": "bun run build",
     "test": "bun test tests/",
     "test:coverage": "bun test --coverage tests/"
   },
-  "dependencies": {
+  "devDependencies": {
     "@tonquant/core": "workspace:*",
+    "@types/bun": "latest",
     "chalk": "latest",
     "cli-table3": "latest",
     "commander": "^13",
     "zod": "^3.24"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
   },
   "engines": {
     "bun": ">=1.0.0"
