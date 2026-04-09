@@ -153,6 +153,22 @@ function normalizeSymbolForProvider(
   return trimmed;
 }
 
+function instrumentIdFor(input: {
+  assetClass: AssetClass;
+  marketRegion: MarketRegion;
+  venue: VenueCode;
+  provider: ProviderCode;
+  displaySymbol: string;
+}): string {
+  return [
+    input.assetClass,
+    input.marketRegion,
+    input.venue,
+    input.provider,
+    input.displaySymbol.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+  ].join(":");
+}
+
 export interface ResolveInstrumentInput {
   readonly symbol: string;
   readonly assetClass: AssetClass;
@@ -169,15 +185,17 @@ export function resolveInstrument(input: ResolveInstrumentInput): InstrumentRef 
   const displaySymbol = input.symbol.trim().toUpperCase();
 
   return InstrumentRefSchema.parse({
-    id: [
-      input.assetClass,
-      input.marketRegion,
+    id: instrumentIdFor({
+      assetClass: input.assetClass,
+      marketRegion: input.marketRegion,
       venue,
-      displaySymbol.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-    ].join(":"),
+      provider,
+      displaySymbol,
+    }),
     assetClass: input.assetClass,
     marketRegion: input.marketRegion,
     venue,
+    provider,
     displaySymbol,
     providerSymbols: {
       synthetic: normalizeSymbolForProvider(

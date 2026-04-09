@@ -19,6 +19,8 @@ import {
   greenRed,
 } from "../../src/utils/format.js";
 import {
+  formatDataFetch,
+  formatDataInfo,
   formatAutoresearchList as formatQuantAutoresearchList,
   formatAutoresearchResult as formatQuantAutoresearchResult,
 } from "../../src/utils/format-quant.js";
@@ -241,5 +243,68 @@ describe("formatAutoresearchList", () => {
     expect(result).toContain("track-1");
     expect(result).toContain("2");
     expect(result).toContain("1");
+  });
+});
+
+describe("quant data formatters", () => {
+  test("formatDataFetch preserves per-instrument bar counts", () => {
+    const result = formatDataFetch({
+      fetchedSymbols: ["BTC-USD", "AAPL"],
+      datasets: [
+        {
+          symbol: "BTC-USD",
+          instrument: {
+            displaySymbol: "BTC-USD",
+            assetClass: "crypto",
+            marketRegion: "ton",
+            venue: "stonfi",
+            provider: "yfinance",
+          },
+          interval: "1d",
+          barCount: 365,
+        },
+        {
+          symbol: "AAPL",
+          instrument: {
+            displaySymbol: "AAPL",
+            assetClass: "equity",
+            marketRegion: "us",
+            venue: "nasdaq",
+            provider: "yfinance",
+          },
+          interval: "1d",
+          barCount: 252,
+        },
+      ],
+      cacheHits: 0,
+      cacheMisses: 2,
+      barCount: 617,
+    });
+
+    expect(result).toContain("365");
+    expect(result).toContain("252");
+    expect(result).toContain("yfinance");
+  });
+
+  test("formatDataInfo shows provider-aware dataset metadata", () => {
+    const result = formatDataInfo({
+      dataset: {
+        symbol: "0700",
+        instrument: {
+          assetClass: "equity",
+          marketRegion: "hk",
+          venue: "hkex",
+          provider: "yfinance",
+        },
+        interval: "1d",
+        barCount: 200,
+        startDate: "2024-01-02",
+        endDate: "2024-10-31",
+      },
+    });
+
+    expect(result).toContain("yfinance");
+    expect(result).toContain("hk");
+    expect(result).toContain("200");
   });
 });

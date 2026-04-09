@@ -82,6 +82,20 @@
 - [x] Expose market-selection flags on `data`, `factor`, `backtest`, and `autoresearch init`
 - [x] Add HK and CN equity presets alongside TON and US equity presets
 - [x] Add targeted backend and orchestrator regression coverage for HK/CN flows
+- [x] Repair post-review hard stops:
+  - provider-aware instrument identity and dataset cache filenames
+  - provider persistence across dataset write/read boundaries
+  - filesystem-safe validation for caller-controlled `runId` artifact paths
+
+## Workstream 9: YFinance Provider Phase 1
+- [x] Add repo-local plan under `plans/plan-20260409-2300-yfinance-provider-phase1.md`
+- [x] Add execution contract under `tasks/contracts/yfinance-provider-phase1.contract.md`
+- [ ] Add backend `yfinance` transport for historical OHLCV
+- [ ] Normalize Yahoo symbols from canonical instruments for US/HK/CN/crypto
+- [ ] Integrate `yfinance` into `data fetch`
+- [ ] Keep `data info` and `data list` accurate for provider-backed cached datasets
+- [ ] Add regression coverage for supported-symbol fetches and unsupported-symbol failures
+- [ ] Fix human bar-count reporting if touched by provider-backed mixed-market fetch output
 
 ## Verification
 - [x] `bun typecheck` (core + cli: 0 errors; quant-backend: excluded)
@@ -100,6 +114,8 @@
 - [x] `bunx tsc -p apps/cli/tsconfig.json --noEmit`
 - [x] `bunx tsc -p apps/quant-backend/tsconfig.json --noEmit`
 - [x] `bun test apps/cli/tests/quant/backend/data.test.ts apps/cli/tests/quant/backend/factor.test.ts apps/cli/tests/quant/backend/preset.test.ts apps/cli/tests/quant/orchestrator.test.ts`
+- [x] `bun test apps/cli/tests/quant/backend/data.test.ts apps/cli/tests/quant/backend/factor.test.ts apps/cli/tests/quant/backend/preset.test.ts apps/cli/tests/quant/orchestrator.test.ts apps/cli/tests/quant/runner/artifact-manager.test.ts`
 - [x] Targeted Biome check on multi-market quant files
+- [x] Targeted Biome check on touched multi-market repair files
 - [ ] Full `bun typecheck` currently blocked by pre-existing `packages/core/tests/services/skill-export.test.ts` errors
 - [ ] Full `bun lint` currently blocked by pre-existing `apps/web` import ordering, a11y, and React hook diagnostics

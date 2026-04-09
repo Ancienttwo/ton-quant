@@ -20,31 +20,46 @@ import {
 
 export function formatDataFetch(data: Record<string, unknown>): string {
   const symbols = data.fetchedSymbols as string[];
+  const datasets =
+    (data.datasets as Array<{
+      symbol: string;
+      instrument: {
+        displaySymbol: string;
+        assetClass: string;
+        marketRegion: string;
+        venue: string;
+        provider?: string;
+      };
+      interval: string;
+      barCount: number;
+    }>) ?? [];
   const instruments =
     (data.instruments as Array<{
       displaySymbol: string;
       assetClass: string;
       marketRegion: string;
       venue: string;
+      provider?: string;
     }>) ?? [];
   const range = data.dateRange as { start: string; end: string } | undefined;
+  const interval = String(data.interval ?? "1d");
 
   const table = new Table({
-    head: ["Symbol", "Asset", "Market", "Venue", "Bars", "Interval"],
+    head: ["Symbol", "Asset", "Market", "Venue", "Provider", "Bars", "Interval"],
     style: { head: ["cyan"] },
   });
 
-  const barsPerInstrument =
-    symbols.length > 0 ? Math.round(Number(data.barCount ?? 0) / symbols.length) : 0;
   for (const s of symbols) {
+    const dataset = datasets.find((entry) => entry.symbol === s);
     const instrument = instruments.find((entry) => entry.displaySymbol === s);
     table.push([
       chalk.cyan(s),
-      instrument?.assetClass ?? "?",
-      instrument?.marketRegion ?? "?",
-      instrument?.venue ?? "?",
-      String(barsPerInstrument),
-      "1d",
+      dataset?.instrument.assetClass ?? instrument?.assetClass ?? "?",
+      dataset?.instrument.marketRegion ?? instrument?.marketRegion ?? "?",
+      dataset?.instrument.venue ?? instrument?.venue ?? "?",
+      dataset?.instrument.provider ?? instrument?.provider ?? "?",
+      String(dataset?.barCount ?? 0),
+      dataset?.interval ?? interval,
     ]);
   }
 
@@ -64,13 +79,13 @@ export function formatDataList(data: Record<string, unknown>): string {
     symbol: string;
     barCount: number;
     interval: string;
-    instrument?: { assetClass: string; marketRegion: string; venue: string };
+    instrument?: { assetClass: string; marketRegion: string; venue: string; provider?: string };
   }>;
   if (!datasets?.length)
     return `\n${header("Datasets")}\n${divider()}\n  ${chalk.dim("No cached datasets.")}\n`;
 
   const table = new Table({
-    head: ["Symbol", "Asset", "Market", "Venue", "Interval", "Bars"],
+    head: ["Symbol", "Asset", "Market", "Venue", "Provider", "Interval", "Bars"],
     style: { head: ["cyan"] },
   });
   for (const d of datasets) {
@@ -79,6 +94,7 @@ export function formatDataList(data: Record<string, unknown>): string {
       d.instrument?.assetClass ?? "?",
       d.instrument?.marketRegion ?? "?",
       d.instrument?.venue ?? "?",
+      d.instrument?.provider ?? "?",
       d.interval,
       String(d.barCount),
     ]);
@@ -89,7 +105,7 @@ export function formatDataList(data: Record<string, unknown>): string {
 export function formatDataInfo(data: Record<string, unknown>): string {
   const ds = data.dataset as {
     symbol: string;
-    instrument?: { assetClass: string; marketRegion: string; venue: string };
+    instrument?: { assetClass: string; marketRegion: string; venue: string; provider?: string };
     interval: string;
     barCount: number;
     startDate?: string;
@@ -102,6 +118,7 @@ export function formatDataInfo(data: Record<string, unknown>): string {
     `  ${label("Asset:")}     ${chalk.cyan(ds.instrument?.assetClass ?? "?")}`,
     `  ${label("Market:")}    ${chalk.cyan(ds.instrument?.marketRegion ?? "?")}`,
     `  ${label("Venue:")}     ${chalk.cyan(ds.instrument?.venue ?? "?")}`,
+    `  ${label("Provider:")}  ${chalk.cyan(ds.instrument?.provider ?? "?")}`,
     `  ${label("Interval:")}  ${chalk.cyan(ds.interval)}`,
     `  ${label("Bars:")}      ${chalk.cyan(String(ds.barCount))}`,
   ];

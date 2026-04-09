@@ -12,7 +12,9 @@ import { handleDataFetch, handleDataInfo, handleDataList } from "./handlers/data
 import { handleFactorCompute, handleFactorList } from "./handlers/factor";
 import { handlePresetList, handlePresetShow } from "./handlers/preset";
 
-type Handler = (input: Record<string, unknown>) => Record<string, unknown>;
+type Handler = (
+  input: Record<string, unknown>,
+) => Record<string, unknown> | Promise<Record<string, unknown>>;
 
 const ROUTES: Record<string, Handler> = {
   "data fetch": handleDataFetch,
@@ -54,7 +56,7 @@ async function main(): Promise<void> {
 
   try {
     process.stderr.write(`[quant-backend] Running: ${subcommand}\n`);
-    const result = handler(input);
+    const result = await handler(input);
     // Echo runId back so Zod schema validation passes
     const output = { runId: input.runId ?? "unknown", ...result };
     process.stdout.write(JSON.stringify(output));

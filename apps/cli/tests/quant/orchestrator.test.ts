@@ -84,4 +84,17 @@ describe("orchestrator", () => {
     const { existsSync } = require("node:fs");
     expect(existsSync(reportArtifact?.path)).toBe(true);
   }, 30_000);
+
+  test("rejects caller-controlled runId path traversal", async () => {
+    await expect(
+      runOrchestrator({
+        asset: "TON/USDT",
+        period: "90d",
+        strategy: "momentum",
+        iterations: 1,
+        factors: ["rsi"],
+        runId: "../../escape",
+      }),
+    ).rejects.toThrow("filesystem-safe identifier");
+  });
 });

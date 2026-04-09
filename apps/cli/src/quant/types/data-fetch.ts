@@ -42,13 +42,26 @@ export const DataFetchDateRangeSchema = z.object({
 });
 export type DataFetchDateRange = z.infer<typeof DataFetchDateRangeSchema>;
 
+export const FetchedDatasetSummarySchema = z.object({
+  symbol: z.string().min(1),
+  instrument: InstrumentRefSchema,
+  interval: DatasetIntervalSchema,
+  path: z.string().min(1),
+  barCount: z.number().int().nonnegative(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+export type FetchedDatasetSummary = z.infer<typeof FetchedDatasetSummarySchema>;
+
 export const DataFetchResultSchema = QuantRunMetaSchema.extend({
   instruments: z.array(InstrumentRefSchema).default([]),
+  datasets: z.array(FetchedDatasetSummarySchema).default([]),
   fetchedSymbols: z.array(z.string()).default([]),
   cacheHits: z.number().int().nonnegative().default(0),
   cacheMisses: z.number().int().nonnegative().default(0),
   barCount: z.number().int().nonnegative(),
   cacheFiles: z.array(z.string()).default([]),
+  interval: DatasetIntervalSchema.default("1d"),
   symbolCount: z.number().int().nonnegative().optional(),
   dateRange: DataFetchDateRangeSchema.optional(),
 });

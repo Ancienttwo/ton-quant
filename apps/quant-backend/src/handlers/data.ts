@@ -1,8 +1,9 @@
 /**
  * Data fetch handler — resolves instruments and writes normalized dataset documents.
- * HK/CN equity and bonds are schema-valid, but remain provider-stubbed in this mock backend.
+ * YFinance is the first live provider; all other providers remain synthetic/provider-stubbed here.
  */
 
+import { join } from "node:path";
 import {
   datasetFileName,
   findLatestDataset,
@@ -11,11 +12,12 @@ import {
   writeDatasetDocument,
 } from "../market/datasets";
 import { resolveInstrumentsFromInput } from "../market/instruments";
+import * as yfinanceMarket from "../market/yfinance";
 
 function datasetSummary(dataset: {
   instrument: { displaySymbol: string };
   interval: string;
-  path: string;
+  path?: string;
   bars: Array<{ date: string }>;
 }) {
   const firstBar = dataset.bars[0];
@@ -24,25 +26,47 @@ function datasetSummary(dataset: {
     symbol: dataset.instrument.displaySymbol,
     instrument: dataset.instrument,
     interval: dataset.interval,
-    path: dataset.path,
+    path: dataset.path ?? "(not cached yet)",
     barCount: dataset.bars.length,
     startDate: firstBar?.date,
     endDate: lastBar?.date,
   };
 }
 
-export function handleDataFetch(input: Record<string, unknown>): Record<string, unknown> {
+async function resolveDatasetForRequest(input: {
+  instrument: ReturnType<typeof resolveInstrumentsFromInput>[number];
+  interval: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  if (input.instrument.provider === "yfinance") {
+    return yfinanceMarket.fetchYFinanceDatasetDocument(input);
+  }
+  return generateDatasetDocument(input);
+}
+
+export async function handleDataFetch(
+  input: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const instruments = resolveInstrumentsFromInput(input);
   const interval = (input.interval as string | undefined) ?? "1d";
   const startDate = input.startDate as string | undefined;
   const endDate = input.endDate as string | undefined;
   const outputDir = input.outputDir as string | undefined;
-  const datasets = instruments.map((instrument) =>
-    generateDatasetDocument({
-      instrument,
-      interval,
-      startDate,
-      endDate,
+  const datasets = await Promise.all(
+    instruments.map((instrument) =>
+      resolveDatasetForRequest({
+        instrument,
+        interval,
+        startDate,
+        endDate,
+      }),
+    ),
+  );
+  const datasetSummaries = datasets.map((dataset) =>
+    datasetSummary({
+      ...dataset,
+      path: outputDir == null ? undefined : join(outputDir, datasetFileName(dataset.instrument)),
     }),
   );
   const totalBars = datasets.reduce((sum, dataset) => sum + dataset.bars.length, 0);
@@ -50,7 +74,7 @@ export function handleDataFetch(input: Record<string, unknown>): Record<string, 
     outputDir == null
       ? []
       : datasets.map((dataset) => {
-          const path = `${outputDir}/${datasetFileName(dataset.instrument.displaySymbol)}`;
+          const path = join(outputDir, datasetFileName(dataset.instrument));
           writeDatasetDocument(path, dataset);
           return {
             path,
@@ -69,12 +93,14 @@ export function handleDataFetch(input: Record<string, unknown>): Record<string, 
     summary: `Fetched ${totalBars} bars for ${instruments.length} instrument(s)`,
     artifacts,
     instruments,
+    datasets: datasetSummaries,
     fetchedSymbols: instruments.map((instrument) => instrument.displaySymbol),
     cacheHits: 0,
     cacheMisses: instruments.length,
     barCount: totalBars,
     cacheFiles: artifacts.map((artifact) => artifact.path),
     symbolCount: instruments.length,
+    interval,
     dateRange:
       preview.bars.length > 0
         ? {
@@ -99,15 +125,15 @@ export function handleDataList(input: Record<string, unknown>): Record<string, u
   const datasets = listDatasets(outputDir).map(datasetSummary);
   return {
     status: "completed",
-    summary: datasets.length
-      ? `${datasets.length} cached dataset(s) found`
-      : "No cached datasets (mock backend)",
+    summary: datasets.length ? `${datasets.length} cached dataset(s) found` : "No cached datasets",
     artifacts: [],
     datasets,
   };
 }
 
-export function handleDataInfo(input: Record<string, unknown>): Record<string, unknown> {
+export async function handleDataInfo(
+  input: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const outputDir = input.outputDir as string | undefined;
   const instrument = resolveInstrumentsFromInput({
     ...input,
@@ -123,7 +149,10 @@ export function handleDataInfo(input: Record<string, unknown>): Record<string, u
       ? null
       : findLatestDataset(
           outputDir,
-          (dataset) => dataset.instrument.id === instrument.id && dataset.interval === interval,
+          (dataset) =>
+            dataset.instrument.id === instrument.id &&
+            dataset.instrument.provider === instrument.provider &&
+            dataset.interval === interval,
         );
 
   if (cached) {
@@ -135,7 +164,12 @@ export function handleDataInfo(input: Record<string, unknown>): Record<string, u
     };
   }
 
-  const preview = generateDatasetDocument({ instrument, interval });
+  const preview = await resolveDatasetForRequest({
+    instrument,
+    interval,
+    startDate: input.startDate as string | undefined,
+    endDate: input.endDate as string | undefined,
+  });
   return {
     status: "completed",
     summary: `Dataset preview for ${instrument.displaySymbol}`,

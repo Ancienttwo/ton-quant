@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import {
+  createAutoresearchRunDir,
   createQuantArtifactDir,
   listArtifacts,
   normalizeArtifacts,
@@ -61,5 +62,14 @@ describe("artifact-manager", () => {
   test("listArtifacts returns empty for nonexistent dir", () => {
     const artifacts = listArtifacts("/nonexistent/path");
     expect(artifacts).toEqual([]);
+  });
+
+  test("rejects path traversal in artifact identifiers", () => {
+    expect(() => createQuantArtifactDir("data-fetch", "../escape", TEST_DIR)).toThrow(
+      "filesystem-safe identifier",
+    );
+    expect(() => createAutoresearchRunDir("../../escape", TEST_DIR)).toThrow(
+      "filesystem-safe identifier",
+    );
   });
 });

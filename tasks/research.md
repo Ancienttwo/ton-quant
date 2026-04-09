@@ -156,3 +156,24 @@ Not recommended now:
 2. Trading-as-git as a literal execution metaphor.
 3. Chat-first application shell.
 4. Browser-native research as a core dependency.
+
+## Post-Review Repair Notes (2026-04-09)
+
+- Multi-market identity is not just `displaySymbol`; cache and persisted dataset boundaries must carry `assetClass + marketRegion + venue + provider`.
+- Provider-aware request parsing must normalize supplied `instruments` as well as raw `symbols`, otherwise persisted baselines can silently downgrade back to synthetic behavior.
+- Caller-controlled artifact ids such as `runId` and `trackId` need filesystem-safe validation before any `join(...)` into `quant/` paths.
+
+## YFinance Coverage Notes (verified 2026-04-09)
+
+- Yahoo Finance currently serves US equities, common HK tickers, and at least some A-shares.
+- Verified live symbol pages:
+  - `0700.HK`
+  - `9988.HK`
+  - `600519.SS`
+  - `601318.SS`
+  - `000001.SZ`
+- Working symbol conventions to encode in provider normalization:
+  - HKEX: `####.HK`
+  - SSE: `######.SS`
+  - SZSE: `######.SZ`
+- Planning assumption for Phase 1: `yfinance` is acceptable as a free first provider for US/HK/CN where Yahoo exposes the symbol, but support must remain per-symbol rather than market-wide guaranteed.

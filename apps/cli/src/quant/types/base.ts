@@ -29,6 +29,7 @@ export const InstrumentRefSchema = z.object({
   assetClass: AssetClassSchema,
   marketRegion: MarketRegionSchema,
   venue: VenueCodeSchema,
+  provider: ProviderCodeSchema.default("synthetic"),
   displaySymbol: z.string().min(1),
   providerSymbols: ProviderSymbolMapSchema,
   quoteCurrency: z.string().min(1),

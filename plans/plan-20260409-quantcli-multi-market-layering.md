@@ -59,6 +59,20 @@ This phase explicitly includes HK and CN equities, not just schema placeholders.
 - Re-run targeted orchestrator and backend tests.
 - Pass `apps/cli` and `apps/quant-backend` strict typechecks independently.
 
+## Post-Review Repair (2026-04-09)
+
+Approved by user chat follow-up on 2026-04-09 to clear merge-blocking review findings before provider integration.
+
+- Make dataset cache identity provider-aware:
+  - carry selected `provider` on `InstrumentRef`
+  - include provider in instrument ids and dataset filenames
+  - preserve provider through dataset writes and legacy dataset reads
+- Reject caller-controlled artifact identifiers that are not filesystem-safe before joining them into quant artifact paths.
+- Add regression coverage for:
+  - same-symbol multi-provider cache writes
+  - provider-specific cache lookup
+  - `runId` path traversal rejection
+
 ## Risks
 
 | Risk | Impact | Mitigation |

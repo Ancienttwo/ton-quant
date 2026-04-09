@@ -33,7 +33,19 @@ export function withResolvedInstruments<T extends InstrumentSelectionRequest>(
   const hasInstruments = (request.instruments?.length ?? 0) > 0;
   const hasSymbols = (request.symbols?.length ?? 0) > 0;
   const instruments = hasInstruments
-    ? [...(request.instruments ?? [])]
+    ? (request.instruments ?? []).map((instrument) => {
+        const [resolved] = resolveInstruments({
+          symbols: [instrument.displaySymbol],
+          assetClass: instrument.assetClass,
+          marketRegion: instrument.marketRegion,
+          venue: instrument.venue,
+          provider: request.provider ?? instrument.provider,
+        });
+        if (!resolved) {
+          throw new Error(`Expected instrument resolution for '${instrument.displaySymbol}'.`);
+        }
+        return resolved;
+      })
     : hasSymbols
       ? resolveInstruments({
           symbols: request.symbols ?? [],

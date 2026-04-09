@@ -7,6 +7,8 @@ import {
   TONQUANT_QUANT_ROOT,
 } from "../types/base.js";
 
+const FILESYSTEM_SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]*$/u;
+
 function ensureDir(path: string): void {
   if (!existsSync(path)) {
     mkdirSync(path, { recursive: true, mode: 0o700 });
@@ -16,6 +18,15 @@ function ensureDir(path: string): void {
 function resolveQuantRoot(outputDir?: string): string {
   if (!outputDir) return TONQUANT_QUANT_ROOT;
   return join(outputDir, "quant");
+}
+
+function assertFilesystemSafeId(id: string, label: string): string {
+  if (!FILESYSTEM_SAFE_ID.test(id)) {
+    throw new Error(
+      `Expected ${label} to be a filesystem-safe identifier (letters, digits, hyphen, underscore).`,
+    );
+  }
+  return id;
 }
 
 function inferArtifactKind(path: string): ArtifactRef["kind"] {
@@ -32,19 +43,31 @@ export function createQuantArtifactDir(
   runId: string,
   outputDir?: string,
 ): string {
-  const artifactDir = join(resolveQuantRoot(outputDir), domain, runId);
+  const artifactDir = join(
+    resolveQuantRoot(outputDir),
+    domain,
+    assertFilesystemSafeId(runId, "runId"),
+  );
   ensureDir(artifactDir);
   return artifactDir;
 }
 
 export function createAutoresearchTrackDir(trackId: string, outputDir?: string): string {
-  const trackDir = join(resolveQuantRoot(outputDir), "autoresearch", trackId);
+  const trackDir = join(
+    resolveQuantRoot(outputDir),
+    "autoresearch",
+    assertFilesystemSafeId(trackId, "trackId"),
+  );
   ensureDir(join(trackDir, "candidates"));
   return trackDir;
 }
 
 export function createAutoresearchRunDir(runId: string, outputDir?: string): string {
-  const runDir = join(resolveQuantRoot(outputDir), "autoresearch-runs", runId);
+  const runDir = join(
+    resolveQuantRoot(outputDir),
+    "autoresearch-runs",
+    assertFilesystemSafeId(runId, "runId"),
+  );
   ensureDir(runDir);
   return runDir;
 }

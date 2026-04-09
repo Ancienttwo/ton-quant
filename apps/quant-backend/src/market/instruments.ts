@@ -9,6 +9,7 @@ export interface InstrumentRefLike {
   assetClass: AssetClass;
   marketRegion: MarketRegion;
   venue: VenueCode;
+  provider: ProviderCode;
   displaySymbol: string;
   providerSymbols: Partial<Record<ProviderCode, string>>;
   quoteCurrency: string;
@@ -121,6 +122,22 @@ function normalizeSymbolForProvider(
   return trimmed;
 }
 
+export function instrumentIdFor(input: {
+  assetClass: AssetClass;
+  marketRegion: MarketRegion;
+  venue: VenueCode;
+  provider: ProviderCode;
+  displaySymbol: string;
+}): string {
+  return [
+    input.assetClass,
+    input.marketRegion,
+    input.venue,
+    input.provider,
+    input.displaySymbol.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+  ].join(":");
+}
+
 export function resolveInstrument(input: {
   symbol: string;
   assetClass: AssetClass;
@@ -140,15 +157,17 @@ export function resolveInstrument(input: {
   const displaySymbol = input.symbol.trim().toUpperCase();
 
   return {
-    id: [
-      input.assetClass,
-      input.marketRegion,
+    id: instrumentIdFor({
+      assetClass: input.assetClass,
+      marketRegion: input.marketRegion,
       venue,
-      displaySymbol.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-    ].join(":"),
+      provider,
+      displaySymbol,
+    }),
     assetClass: input.assetClass,
     marketRegion: input.marketRegion,
     venue,
+    provider,
     displaySymbol,
     providerSymbols: {
       synthetic: normalizeSymbolForProvider(
@@ -175,7 +194,15 @@ export function resolveInstrument(input: {
 export function resolveInstrumentsFromInput(input: Record<string, unknown>): InstrumentRefLike[] {
   const supplied = input.instruments as InstrumentRefLike[] | undefined;
   if (supplied && supplied.length > 0) {
-    return supplied;
+    return supplied.map((instrument) =>
+      resolveInstrument({
+        symbol: instrument.displaySymbol,
+        assetClass: instrument.assetClass,
+        marketRegion: instrument.marketRegion,
+        venue: instrument.venue,
+        provider: (input.provider as ProviderCode | undefined) ?? instrument.provider,
+      }),
+    );
   }
 
   const symbols = ((input.symbols as string[] | undefined) ?? []).map((symbol) =>
@@ -202,6 +229,9 @@ export function resolveInstrumentsFromInput(input: Record<string, unknown>): Ins
 }
 
 export function providerForInstrument(instrument: InstrumentRefLike): ProviderCode {
+  if (instrument.provider) {
+    return instrument.provider;
+  }
   if (instrument.assetClass === "crypto" && instrument.marketRegion === "ton") {
     return "synthetic";
   }

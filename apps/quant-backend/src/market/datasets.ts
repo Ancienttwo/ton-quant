@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import {
   annualizationBasisForInstrument,
   type InstrumentRefLike,
+  instrumentIdFor,
   providerForInstrument,
 } from "./instruments";
 
@@ -107,10 +108,22 @@ export function createDatasetDocument(input: {
   interval: string;
   bars: OhlcvBar[];
 }): DatasetDocument {
+  const provider = input.instrument.provider ?? providerForInstrument(input.instrument);
+  const instrument = {
+    ...input.instrument,
+    id: instrumentIdFor({
+      assetClass: input.instrument.assetClass,
+      marketRegion: input.instrument.marketRegion,
+      venue: input.instrument.venue,
+      provider,
+      displaySymbol: input.instrument.displaySymbol,
+    }),
+    provider,
+  };
   return {
     schemaVersion: 1,
-    instrument: input.instrument,
-    provider: providerForInstrument(input.instrument),
+    instrument,
+    provider,
     interval: input.interval,
     generatedAt: new Date().toISOString(),
     tradingDaysPerYear: annualizationBasisForInstrument(input.instrument),
@@ -143,10 +156,11 @@ export function readDatasetDocument(datasetPath: string): DatasetDocument {
     return {
       schemaVersion: 1,
       instrument: {
-        id: "crypto:ton:stonfi:legacy-ton-usdt",
+        id: "crypto:ton:stonfi:synthetic:legacy-ton-usdt",
         assetClass: "crypto",
         marketRegion: "ton",
         venue: "stonfi",
+        provider: "synthetic",
         displaySymbol: "TON/USDT",
         providerSymbols: { synthetic: "TON/USDT" },
         quoteCurrency: "USD",
@@ -163,11 +177,39 @@ export function readDatasetDocument(datasetPath: string): DatasetDocument {
   if (!parsed.bars || !parsed.instrument) {
     throw new Error(`Failed to read dataset at ${datasetPath}`);
   }
-  return parsed;
+  const provider =
+    parsed.instrument.provider ?? parsed.provider ?? providerForInstrument(parsed.instrument);
+  return {
+    ...parsed,
+    instrument: {
+      ...parsed.instrument,
+      id: instrumentIdFor({
+        assetClass: parsed.instrument.assetClass,
+        marketRegion: parsed.instrument.marketRegion,
+        venue: parsed.instrument.venue,
+        provider,
+        displaySymbol: parsed.instrument.displaySymbol,
+      }),
+      provider,
+    },
+    provider,
+  };
 }
 
-export function datasetFileName(symbol: string): string {
-  return `${symbol.replace(/[^A-Za-z0-9]+/g, "-")}.dataset.json`;
+export function datasetFileName(
+  instrument: Pick<
+    InstrumentRefLike,
+    "assetClass" | "marketRegion" | "venue" | "provider" | "displaySymbol"
+  >,
+): string {
+  const symbolSlug = instrument.displaySymbol.replace(/[^A-Za-z0-9]+/g, "-");
+  return `${[
+    instrument.assetClass,
+    instrument.marketRegion,
+    instrument.venue,
+    instrument.provider,
+    symbolSlug,
+  ].join("-")}.dataset.json`;
 }
 
 function dataDomainRoot(outputDir: string): string {
