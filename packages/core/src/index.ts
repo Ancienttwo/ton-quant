@@ -43,6 +43,24 @@ export {
   readEvents,
 } from "./services/event-log.js";
 export {
+  buildIntentText,
+  buildPreparedPlatformAction,
+  buildPublishIntent,
+  buildPublishManifest,
+  buildSigningSession,
+  createNonce,
+  createPublicationId,
+  createSessionId,
+  createSettlementBatchId,
+  hashManifest,
+  normalizeTonAddress,
+  PlatformPublishError,
+  sha256Hex,
+  stringifyCanonicalJson,
+  verifyTonConnectIntentSignature,
+  verifyWalletPublicKeyMatchesAddress,
+} from "./services/platform-publish.js";
+export {
   fetchBalanceData,
   fetchHistoryData,
   fetchPoolData,
@@ -190,6 +208,44 @@ export {
   FactorSubscriptionSchema,
   ReportsFileSchema,
 } from "./types/factor-registry.js";
+export type {
+  CommissionEventInput,
+  CommissionLedgerEntry,
+  PayoutChangeResult,
+  PlatformAction,
+  PreparedPlatformAction,
+  PublicationRecord,
+  PublicationStatus,
+  PublicationStatusResponse,
+  PublishIntent,
+  PublishManifest,
+  RawTonAddress,
+  SettlementBatch,
+  SettlementStatus,
+  SigningSession,
+  SigningSessionStatus,
+  TonConnectSignDataResult,
+  TonNetwork,
+} from "./types/platform-publish.js";
+export {
+  CommissionEventInputSchema,
+  CommissionLedgerEntrySchema,
+  PayoutChangeResultSchema,
+  PlatformActionSchema,
+  PreparedPlatformActionSchema,
+  PublicationRecordSchema,
+  PublicationStatusResponseSchema,
+  PublicationStatusSchema,
+  PublishIntentSchema,
+  PublishManifestSchema,
+  RawTonAddressSchema,
+  SettlementBatchSchema,
+  SettlementStatusSchema,
+  SigningSessionSchema,
+  SigningSessionStatusSchema,
+  TonConnectSignDataResultSchema,
+  TonNetworkSchema,
+} from "./types/platform-publish.js";
 export { decrypt, encrypt, loadOrCreateKey } from "./utils/crypto.js";
 // Utils
 export { calcUsdValue, fromRawUnits, toRawUnits } from "./utils/units.js";

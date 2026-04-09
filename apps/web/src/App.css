@@ -647,3 +647,127 @@
     text-align: center;
   }
 }
+
+.signer-page {
+  min-height: 100vh;
+  padding: 48px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top, rgba(0, 255, 200, 0.16), transparent 35%),
+    linear-gradient(180deg, #06131c 0%, #091b28 100%);
+}
+
+.signer-card {
+  width: min(960px, 100%);
+  padding: 28px;
+  border: 1px solid rgba(87, 255, 211, 0.28);
+  border-radius: 20px;
+  background: rgba(6, 18, 28, 0.92);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+}
+
+.signer-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.signer-kicker {
+  margin: 0 0 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #57ffd3;
+  font-size: 12px;
+}
+
+.signer-sub {
+  margin: 8px 0 0;
+  color: rgba(235, 246, 255, 0.76);
+}
+
+.signer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.signer-field {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.signer-field span,
+.signer-intent span {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(235, 246, 255, 0.62);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.signer-field strong,
+.signer-field code {
+  color: #f3fbff;
+  word-break: break-all;
+}
+
+.signer-intent {
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.signer-intent pre,
+.signer-success pre {
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.signer-submit {
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #57ffd3 0%, #6bb8ff 100%);
+  color: #04111a;
+}
+
+.signer-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.signer-error {
+  color: #ff8d8d;
+  margin: 0 0 16px;
+}
+
+.signer-success {
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(87, 255, 211, 0.08);
+  border: 1px solid rgba(87, 255, 211, 0.28);
+}
+
+@media (max-width: 720px) {
+  .signer-header {
+    flex-direction: column;
+  }
+
+  .signer-grid {
+    grid-template-columns: 1fr;
+  }
+}
