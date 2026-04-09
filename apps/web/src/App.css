@@ -61,14 +61,14 @@
   padding: 6px 16px;
   border: 1px solid var(--neutral-30);
   border-radius: var(--radius-sm);
-  color: var(--primary) !important;
-  font-family: var(--font-mono) !important;
-  font-size: 13px !important;
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 .nav-cta:hover {
-  border-color: var(--primary) !important;
+  border-color: var(--primary);
   background: var(--primary-dim);
 }
 

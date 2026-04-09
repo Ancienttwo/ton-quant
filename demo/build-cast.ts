@@ -41,7 +41,6 @@ const TYPING_CHAR_DELAY = 0.03; // typing simulation
 
 for (let i = 0; i < lines.length; i++) {
   const line = lines[i] ?? "";
-  const nextLine = lines[i + 1] ?? "";
 
   // Detect sections by cyan color or box drawing
   const isSection = line.includes("━━━") && line.includes("\x1b[1;36m");
@@ -93,7 +92,7 @@ for (let i = 0; i < lines.length; i++) {
 }
 
 // Write cast file
-process.stdout.write(JSON.stringify(header) + "\n");
+process.stdout.write(`${JSON.stringify(header)}\n`);
 for (const frame of frames) {
-  process.stdout.write(JSON.stringify(frame) + "\n");
+  process.stdout.write(`${JSON.stringify(frame)}\n`);
 }

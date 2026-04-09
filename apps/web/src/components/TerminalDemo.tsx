@@ -30,7 +30,11 @@ const DEMO_LINES: TermLine[] = [
   { text: "", type: "dim", delay: 4500 },
 
   // Scene 2: Discover (~4s)
-  { text: "$ tonquant factor discover --category momentum --min-sharpe 1.0", type: "prompt", delay: 5000 },
+  {
+    text: "$ tonquant factor discover --category momentum --min-sharpe 1.0",
+    type: "prompt",
+    delay: 5000,
+  },
   { text: "", type: "dim", delay: 6200 },
   { text: "  Factor Search", type: "header", delay: 6500 },
   { text: "  ────────────────────────────────────────────────", type: "divider", delay: 6700 },
@@ -53,7 +57,11 @@ const DEMO_LINES: TermLine[] = [
   { text: "", type: "dim", delay: 14000 },
 
   // Scene 4: Compose (~5s)
-  { text: "$ tonquant factor compose --factors ton_momentum_1d:0.6,not_vol_revert:0.4", type: "prompt", delay: 14500 },
+  {
+    text: "$ tonquant factor compose --factors ton_momentum_1d:0.6,not_vol_revert:0.4",
+    type: "prompt",
+    delay: 14500,
+  },
   { text: "", type: "dim", delay: 16200 },
   { text: "  Factor Composition", type: "header", delay: 16500 },
   { text: "  ────────────────────────────────────────────────", type: "divider", delay: 16700 },
@@ -121,7 +129,7 @@ export function TerminalDemo() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [visibleLines]);
+  });
 
   const renderLine = (line: TermLine, index: number) => {
     if (line.type === "prompt") {

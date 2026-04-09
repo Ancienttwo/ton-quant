@@ -17,13 +17,21 @@ describe("skill export service", () => {
     expect(skills.length).toBe(5);
     // Should be sorted by Sharpe (descending)
     for (let i = 1; i < skills.length; i++) {
-      expect(skills[i - 1]?.sharpe).toBeGreaterThanOrEqual(skills[i]?.sharpe);
+      const previousSkill = skills[i - 1];
+      const currentSkill = skills[i];
+      if (!previousSkill || !currentSkill) {
+        throw new Error("expected sorted factor skills to contain adjacent entries");
+      }
+      expect(previousSkill.sharpe).toBeGreaterThanOrEqual(currentSkill.sharpe);
     }
   });
 
   it("skill has all required fields", () => {
     const skills = exportTopFactorsAsSkills(1);
     const skill = skills[0];
+    if (!skill) {
+      throw new Error("expected one exported skill");
+    }
     expect(skill.name).toBeTruthy();
     expect(skill.factorId).toBeTruthy();
     expect(skill.category).toBeTruthy();

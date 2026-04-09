@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import { cagrLevel, drawdownLevel, levelToCss, sharpeLevel } from "../data/thresholds";
 import type { FactorCategory, FactorMetaPublic } from "../data/types";
-import { sharpeLevel, cagrLevel, drawdownLevel, levelToCss } from "../data/thresholds";
 
 type SortField = "sharpe" | "cagr" | "winRate" | "maxDrawdown";
 type SortDir = "asc" | "desc";
@@ -80,15 +80,22 @@ export function Leaderboard({ factors, onFactorSelect, selectedFactorId }: Leade
 
   const sorted = useMemo(() => {
     const mult = sortDir === "desc" ? -1 : 1;
-    return [...filtered].sort(
-      (a, b) => mult * (a.backtest[sortField] - b.backtest[sortField]),
-    );
+    return [...filtered].sort((a, b) => mult * (a.backtest[sortField] - b.backtest[sortField]));
   }, [filtered, sortField, sortDir]);
 
   const sortArrow = (field: SortField) => {
     if (sortField !== field) return "";
     return sortDir === "desc" ? " \u25BC" : " \u25B2";
   };
+
+  const renderSortHeader = (field: SortField, label: string, className?: string) => (
+    <th className={className}>
+      <button type="button" className="leaderboard-sort-button" onClick={() => handleSort(field)}>
+        {label}
+        {sortArrow(field)}
+      </button>
+    </th>
+  );
 
   return (
     <div className="leaderboard">
@@ -101,6 +108,7 @@ export function Leaderboard({ factors, onFactorSelect, selectedFactorId }: Leade
         <div className="period-selector">
           {(["7d", "30d", "90d", "all"] as const).map((p) => (
             <button
+              type="button"
               key={p}
               className={`period-pill${period === p ? " period-pill--active" : ""}`}
               onClick={() => setPeriod(p)}
@@ -115,6 +123,7 @@ export function Leaderboard({ factors, onFactorSelect, selectedFactorId }: Leade
       <div className="leaderboard-filters">
         {CATEGORIES.map((cat) => (
           <button
+            type="button"
             key={cat}
             className={`filter-pill${activeCategories.has(cat) ? " filter-pill--active" : ""}`}
             onClick={() => toggleCategory(cat)}
@@ -131,18 +140,10 @@ export function Leaderboard({ factors, onFactorSelect, selectedFactorId }: Leade
             <tr>
               <th className="col-rank">#</th>
               <th className="col-factor">Factor</th>
-              <th className="col-sortable" tabIndex={0} role="button" onClick={() => handleSort("sharpe")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleSort("sharpe"); }}>
-                Sharpe{sortArrow("sharpe")}
-              </th>
-              <th className="col-sortable" tabIndex={0} role="button" onClick={() => handleSort("cagr")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleSort("cagr"); }}>
-                CAGR{sortArrow("cagr")}
-              </th>
-              <th className="col-sortable" tabIndex={0} role="button" onClick={() => handleSort("winRate")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleSort("winRate"); }}>
-                Win Rate{sortArrow("winRate")}
-              </th>
-              <th className="col-sortable col-hide-mobile" tabIndex={0} role="button" onClick={() => handleSort("maxDrawdown")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleSort("maxDrawdown"); }}>
-                Max DD{sortArrow("maxDrawdown")}
-              </th>
+              {renderSortHeader("sharpe", "Sharpe", "col-sortable")}
+              {renderSortHeader("cagr", "CAGR", "col-sortable")}
+              {renderSortHeader("winRate", "Win Rate", "col-sortable")}
+              {renderSortHeader("maxDrawdown", "Max DD", "col-sortable col-hide-mobile")}
               <th className="col-cat col-hide-mobile">Cat</th>
             </tr>
           </thead>
@@ -154,7 +155,9 @@ export function Leaderboard({ factors, onFactorSelect, selectedFactorId }: Leade
                 tabIndex={0}
                 aria-selected={selectedFactorId === f.id}
                 onClick={() => onFactorSelect(f.id)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onFactorSelect(f.id); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onFactorSelect(f.id);
+                }}
               >
                 <td className="col-rank">{i + 1}</td>
                 <td className="col-factor">{f.id}</td>
@@ -166,7 +169,10 @@ export function Leaderboard({ factors, onFactorSelect, selectedFactorId }: Leade
                   {f.backtest.cagr.toFixed(1)}%
                 </td>
                 <td>{(f.backtest.winRate * 100).toFixed(0)}%</td>
-                <td className="col-hide-mobile" style={{ color: levelToCss(drawdownLevel(f.backtest.maxDrawdown)) }}>
+                <td
+                  className="col-hide-mobile"
+                  style={{ color: levelToCss(drawdownLevel(f.backtest.maxDrawdown)) }}
+                >
                   {f.backtest.maxDrawdown.toFixed(1)}%
                 </td>
                 <td className="col-cat col-hide-mobile">{CATEGORY_ABBR[f.category]}</td>

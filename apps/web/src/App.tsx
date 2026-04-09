@@ -1,5 +1,5 @@
-import { TerminalDemo } from "./components/TerminalDemo";
 import { MarketplaceSection } from "./components/MarketplaceSection";
+import { TerminalDemo } from "./components/TerminalDemo";
 import "./App.css";
 
 function App() {

@@ -211,3 +211,32 @@ Not recommended now:
   - backend-coded errors now cross the CLI boundary through a dedicated structured stderr marker instead of regex-scraping human log lines
   - OpenBB HTTP error details are whitespace-compacted before being surfaced, so remote response text cannot inject extra log lines into the coded-error path
   - credential-bearing OpenBB requests are refused over non-HTTPS transport unless the target is loopback (`localhost`, `127.0.0.1`, `::1`)
+
+## Repo Baseline Cleanup Notes (verified 2026-04-09)
+
+- Full root verification is now blocked by a small fixed set of pre-existing failures rather than broad unknown repo drift.
+- `bun typecheck` currently fails only in `packages/core/tests/services/skill-export.test.ts`:
+  - one `number | undefined` to `number | bigint` mismatch in a `toBeGreaterThanOrEqual(...)` assertion path
+  - multiple `'skill' is possibly 'undefined'` strict-null errors after indexing `skills[0]`
+- `bun lint` currently fails in these verified `apps/web` files:
+  - `src/App.tsx` — import ordering
+  - `src/components/BacktestViewer.tsx` — import ordering and hook dependency correctness
+  - `src/components/FactorDetailModal.tsx` — import ordering, non-semantic click targets, missing button types
+  - `src/components/Leaderboard.tsx` — import ordering, missing button types, sortable header semantics
+  - `src/components/MarketplaceSection.tsx` — import ordering
+  - `src/components/TerminalDemo.tsx` — hook dependency correctness
+- The right cleanup posture is narrow:
+  - restore full `bun typecheck`
+  - restore full `bun lint`
+  - avoid turning the cleanup into frontend redesign or unrelated refactoring
+- Implementation outcome:
+  - `packages/core/tests/services/skill-export.test.ts` is now strict-null-safe without weakening production contracts
+  - the known `apps/web` blocker set is lint-clean after import ordering, hook dependency, and semantic button fixes
+  - modal backdrop closing now uses a dedicated backdrop button rather than an interactive static container
+  - root verification is green again through the repo-defined scripts:
+    - `bun run typecheck`
+    - `bun run lint`
+    - `bun run test`
+- Important repo detail:
+  - bare `bun test` from the repo root bypasses the package-script `_ref/**` ignore pattern and will sweep the OpenAlice mirror into the run
+  - the authoritative root verification command for this repo is `bun run test`, not raw `bun test`

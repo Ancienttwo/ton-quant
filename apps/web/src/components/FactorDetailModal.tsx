@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { BacktestViewer } from "./BacktestViewer";
 import type { FactorCategory, FactorMetaPublic } from "../data/types";
+import { BacktestViewer } from "./BacktestViewer";
 
 const CATEGORY_COLORS: Record<FactorCategory, string> = {
   momentum: "var(--primary)",
@@ -58,7 +58,13 @@ export function FactorDetailModal({ factor, onClose, isOpen }: FactorDetailModal
   const titleId = `modal-title-${factor.id}`;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
+      <button
+        type="button"
+        className="modal-backdrop"
+        aria-label="Close dialog"
+        onClick={onClose}
+      />
       <div
         className="modal-container"
         ref={containerRef}
@@ -66,12 +72,13 @@ export function FactorDetailModal({ factor, onClose, isOpen }: FactorDetailModal
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="modal-header">
-          <h2 className="modal-title" id={titleId}>{factor.name}</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+          <h2 className="modal-title" id={titleId}>
+            {factor.name}
+          </h2>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
             &times;
           </button>
         </div>
@@ -113,6 +120,7 @@ export function FactorDetailModal({ factor, onClose, isOpen }: FactorDetailModal
         {factor.parameters.length > 0 && (
           <div className="modal-params">
             <button
+              type="button"
               className="params-toggle"
               onClick={() => setParamsOpen((o) => !o)}
               aria-expanded={paramsOpen}
@@ -127,9 +135,7 @@ export function FactorDetailModal({ factor, onClose, isOpen }: FactorDetailModal
                     <span className="param-name">{p.name}</span>
                     <span className="param-desc">{p.description}</span>
                     {p.defaultValue != null && (
-                      <span className="param-default">
-                        default: {String(p.defaultValue)}
-                      </span>
+                      <span className="param-default">default: {String(p.defaultValue)}</span>
                     )}
                   </div>
                 ))}
@@ -144,6 +150,7 @@ export function FactorDetailModal({ factor, onClose, isOpen }: FactorDetailModal
         {/* Actions */}
         <div className="modal-actions">
           <button
+            type="button"
             className={`btn ${subscribed ? "btn-ghost" : "btn-primary"}`}
             onClick={() => setSubscribed((s) => !s)}
           >
