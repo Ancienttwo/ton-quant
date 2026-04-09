@@ -4,6 +4,15 @@
 # ===== Keep AI workflow visible in git =====
 !.ai/
 !.claude/
+.claude/.session-*
+.claude/.tool-call-count
+.claude/.trace.jsonl
+.claude/.context-pressure/
+.claude/settings.local.json
+apps/*/.claude/.session-*
+apps/*/.claude/.tool-call-count
+apps/*/.claude/.trace.jsonl
+apps/*/.claude/.context-pressure/
 
 # ===== Build Artifacts =====
 artifacts/
@@ -11,6 +20,7 @@ dist/
 build/
 coverage/
 _ref/
+data/
 
 # ===== Environment Variables =====
 .env
