@@ -25,6 +25,16 @@ interface MarketDefaults {
   defaultProvider: ProviderCode;
 }
 
+function assertProviderAllowed(
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+  provider: ProviderCode,
+): void {
+  if (provider === "yfinance" && assetClass !== "equity") {
+    throw new Error(`Unsupported provider 'yfinance' for market '${assetClass}/${marketRegion}'.`);
+  }
+}
+
 function marketDefaultsFor(
   assetClass: AssetClass,
   marketRegion: MarketRegion,
@@ -110,8 +120,7 @@ function normalizeSymbolForProvider(
   const trimmed = symbol.trim().toUpperCase();
   if (provider === "synthetic") return trimmed;
   if (assetClass === "crypto" && marketRegion === "ton") {
-    if (provider === "stonfi" || provider === "tonapi") return trimmed;
-    return trimmed.replace(/\//g, "-");
+    return trimmed;
   }
   if (assetClass === "equity" && marketRegion === "hk") {
     return /^\d+$/.test(trimmed) ? `${trimmed.padStart(4, "0")}.HK` : trimmed;
@@ -154,6 +163,7 @@ export function resolveInstrument(input: {
   const venue = input.venue ?? defaults.defaultVenue;
   const provider = input.provider ?? defaults.defaultProvider;
   assertVenueAllowed(input.assetClass, input.marketRegion, venue);
+  assertProviderAllowed(input.assetClass, input.marketRegion, provider);
   const displaySymbol = input.symbol.trim().toUpperCase();
 
   return {

@@ -95,6 +95,19 @@ export function defaultProviderFor(
   return marketDefaultsFor(assetClass, marketRegion).defaultProvider;
 }
 
+function assertProviderAllowed(
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+  provider: ProviderCode,
+): void {
+  if (provider === "yfinance" && assetClass !== "equity") {
+    throw new ServiceError(
+      `Unsupported provider 'yfinance' for market '${assetClass}/${marketRegion}'.`,
+      "QUANT_PROVIDER_UNSUPPORTED",
+    );
+  }
+}
+
 function assertVenueAllowed(
   assetClass: AssetClass,
   marketRegion: MarketRegion,
@@ -137,8 +150,7 @@ function normalizeSymbolForProvider(
   const trimmed = symbol.trim().toUpperCase();
   if (provider === "synthetic") return trimmed;
   if (assetClass === "crypto" && marketRegion === "ton") {
-    if (provider === "stonfi" || provider === "tonapi") return trimmed;
-    return trimmed.replace(/\//g, "-");
+    return trimmed;
   }
   if (assetClass === "equity" && marketRegion === "us") {
     return trimmed;
@@ -182,6 +194,7 @@ export function resolveInstrument(input: ResolveInstrumentInput): InstrumentRef 
   const venue = input.venue ?? defaultVenueFor(input.assetClass, input.marketRegion);
   assertVenueAllowed(input.assetClass, input.marketRegion, venue);
   const provider = input.provider ?? defaults.defaultProvider;
+  assertProviderAllowed(input.assetClass, input.marketRegion, provider);
   const displaySymbol = input.symbol.trim().toUpperCase();
 
   return InstrumentRefSchema.parse({

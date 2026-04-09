@@ -13,7 +13,6 @@ This phase proves the provider seam end-to-end for:
 - US equities
 - Hong Kong equities
 - A-shares where Yahoo Finance exposes the symbol
-- crypto symbols already compatible with Yahoo Finance
 
 ## Building
 
@@ -23,6 +22,7 @@ Add a provider adapter behind the quant backend data boundary. CLI market select
 
 - Do not change factor, backtest, or autoresearch execution semantics in this phase.
 - Do not add a second real provider in the same pass.
+- Do not support crypto through `yfinance` in this phase.
 - Do not promise full HK/CN coverage beyond symbols Yahoo Finance actually serves.
 - Do not fix unrelated full-repo lint/typecheck debt.
 - Do not change the quant artifact directory layout again.
@@ -83,11 +83,14 @@ It is still bounded to `data fetch|info|list`, but it exercises the actual probl
 - Keep normalized dataset documents as the only persistence contract.
   Reason: provider transport should be replaceable without rewriting factor/backtest/autoresearch.
 
-- Normalize Yahoo symbols in one place from `InstrumentRef`.
+- Normalize Yahoo symbols in one place from `InstrumentRef` for equities only.
   Reason: HK (`####.HK`) and CN (`######.SS` / `######.SZ`) rules must not leak into multiple handlers.
 
 - Gate real-provider behavior by `provider === "yfinance"`.
   Reason: avoids destabilizing existing synthetic and stub flows while Phase 1 is landing.
+
+- Reject `crypto + yfinance` during market resolution.
+  Reason: slash-form TON pairs do not define a stable Yahoo ticker contract, so silent guessing would lie about provider coverage.
 
 - Treat unsupported or missing Yahoo symbols as structured fetch failures, not silent synthetic fallbacks.
   Reason: silent fallback would lie about provider coverage and poison the cache.
@@ -98,11 +101,11 @@ It is still bounded to `data fetch|info|list`, but it exercises the actual probl
 ## Work Units
 
 1. Add backend `yfinance` transport and response normalization for OHLCV bars.
-2. Add Yahoo symbol normalization from canonical instruments for US/HK/CN/crypto.
+2. Add Yahoo symbol normalization from canonical instruments for US/HK/CN equities.
 3. Route `data fetch` to live transport when provider is `yfinance`, preserving normalized cache writes.
 4. Make `data info` surface cached provider-aware datasets accurately and fall back to provider-aware preview semantics.
 5. Keep `data list` purely cache-based but ensure summaries reflect real provider identity.
-6. Add regression tests for US/HK/CN symbol normalization, real-provider cache writes, unsupported-symbol failures, and output metadata.
+6. Add regression tests for US/HK/CN symbol normalization, explicit `crypto + yfinance` rejection, real-provider cache writes, unsupported-symbol failures, and output metadata.
 
 ## Risks
 

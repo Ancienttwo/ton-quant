@@ -69,7 +69,16 @@ function normalizeQuotesToBars(
     });
 }
 
+function assertYFinanceInstrumentSupported(instrument: InstrumentRefLike): void {
+  if (instrument.assetClass !== "equity") {
+    throw new Error(
+      `Unsupported provider 'yfinance' for market '${instrument.assetClass}/${instrument.marketRegion}'.`,
+    );
+  }
+}
+
 export function yfinanceSymbolForInstrument(instrument: InstrumentRefLike): string {
+  assertYFinanceInstrumentSupported(instrument);
   const explicit = instrument.providerSymbols.yfinance;
   if (explicit) {
     return explicit;

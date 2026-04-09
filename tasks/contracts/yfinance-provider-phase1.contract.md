@@ -7,14 +7,15 @@ Integrate `yfinance` as the first real quant market-data provider for `data fetc
 ## Deliverables
 
 - Backend-side Yahoo transport for historical OHLCV fetches
-- Canonical Yahoo symbol normalization from `InstrumentRef`
+- Canonical Yahoo symbol normalization from `InstrumentRef` for US/HK/CN equities
 - Provider-aware normalized dataset persistence for live `yfinance` fetches
 - Accurate `data info` and `data list` behavior over cached `yfinance` datasets
-- Regression tests for US, HK, and CN symbol formatting plus provider failure handling
+- Regression tests for US, HK, and CN symbol formatting plus explicit unsupported-provider failure handling
 
 ## Non-Goals
 
 - Do not add a second real provider.
+- Do not support crypto through `yfinance` in this phase.
 - Do not thread live-provider transport into factor/backtest/autoresearch in this pass.
 - Do not claim universal HK/CN coverage; only supported Yahoo symbols are in scope.
 - Do not fix unrelated root-repo verification debt.
@@ -22,6 +23,7 @@ Integrate `yfinance` as the first real quant market-data provider for `data fetc
 ## Acceptance Criteria
 
 - `tonquant data fetch --provider yfinance` writes normalized datasets backed by real Yahoo data.
+- `tonquant data fetch --asset-class crypto --provider yfinance` fails explicitly before provider transport.
 - Cached dataset identity remains unique across `assetClass + marketRegion + venue + provider + symbol`.
 - `tonquant data info` returns provider-accurate cached metadata for `yfinance` datasets.
 - Unsupported Yahoo symbols fail explicitly without synthetic fallback.

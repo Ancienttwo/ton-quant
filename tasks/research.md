@@ -176,4 +176,5 @@ Not recommended now:
   - HKEX: `####.HK`
   - SSE: `######.SS`
   - SZSE: `######.SZ`
-- Planning assumption for Phase 1: `yfinance` is acceptable as a free first provider for US/HK/CN where Yahoo exposes the symbol, but support must remain per-symbol rather than market-wide guaranteed.
+- Phase 1 contract correction: treat `yfinance` as equities-only. Do not infer Yahoo crypto support from slash-form TON pairs such as `TON/USDT`; explicit ticker mapping is required before crypto can be supported safely.
+- Planning assumption for Phase 1: `yfinance` is acceptable as a free first provider for US/HK/CN equities where Yahoo exposes the symbol, but support must remain per-symbol rather than market-wide guaranteed.

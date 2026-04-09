@@ -90,12 +90,13 @@
 ## Workstream 9: YFinance Provider Phase 1
 - [x] Add repo-local plan under `plans/plan-20260409-2300-yfinance-provider-phase1.md`
 - [x] Add execution contract under `tasks/contracts/yfinance-provider-phase1.contract.md`
-- [ ] Add backend `yfinance` transport for historical OHLCV
-- [ ] Normalize Yahoo symbols from canonical instruments for US/HK/CN/crypto
-- [ ] Integrate `yfinance` into `data fetch`
-- [ ] Keep `data info` and `data list` accurate for provider-backed cached datasets
-- [ ] Add regression coverage for supported-symbol fetches and unsupported-symbol failures
-- [ ] Fix human bar-count reporting if touched by provider-backed mixed-market fetch output
+- [x] Add backend `yfinance` transport for historical OHLCV
+- [x] Normalize Yahoo symbols from canonical instruments for US/HK/CN equities
+- [x] Integrate `yfinance` into `data fetch`
+- [x] Keep `data info` and `data list` accurate for provider-backed cached datasets
+- [x] Add regression coverage for supported-symbol fetches and unsupported-symbol failures
+- [x] Fix human bar-count reporting if touched by provider-backed mixed-market fetch output
+- [x] Cut Phase 1 to equities-only by rejecting `crypto + yfinance` during market resolution
 
 ## Verification
 - [x] `bun typecheck` (core + cli: 0 errors; quant-backend: excluded)

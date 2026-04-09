@@ -13,3 +13,7 @@
 ## Filesystem Boundaries
 
 - Never join caller-controlled ids directly into artifact paths. Validate `runId`, `trackId`, and candidate ids against the filesystem-safe identifier contract first, then create directories or files.
+
+## Provider Contracts
+
+- Do not infer third-party symbol compatibility from local pair syntax. If provider coverage depends on an explicit external ticker contract, either encode the mapping and test it or reject the combination at market resolution.

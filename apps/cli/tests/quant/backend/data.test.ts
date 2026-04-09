@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -163,6 +163,17 @@ describe("data handler", () => {
     expect(yfinanceMarket.yfinanceSymbolForInstrument(szseInstrument)).toBe("000001.SZ");
   });
 
+  test("backend instrument resolution rejects crypto requests for yfinance", () => {
+    expect(() =>
+      resolveInstrument({
+        symbol: "TON/USDT",
+        assetClass: "crypto",
+        marketRegion: "ton",
+        provider: "yfinance",
+      }),
+    ).toThrow("Unsupported provider 'yfinance' for market 'crypto/ton'.");
+  });
+
   test("handleDataFetch writes distinct cache files for same symbol across providers", async () => {
     const outputDir = createTempDir("tonquant-datasets-");
     const fetchSpy = spyOn(yfinanceMarket, "fetchYFinanceDatasetDocument").mockResolvedValue(
@@ -255,6 +266,46 @@ describe("data handler", () => {
       }),
     ).rejects.toThrow("No Yahoo Finance data for 999999.SS");
 
+    fetchSpy.mockRestore();
+  });
+
+  test("handleDataFetch rejects crypto requests for yfinance before provider transport", async () => {
+    const fetchSpy = spyOn(yfinanceMarket, "fetchYFinanceDatasetDocument").mockImplementation(
+      mock(async () => {
+        throw new Error("provider transport should not run");
+      }),
+    );
+
+    await expect(
+      handleDataFetch({
+        symbols: ["TON/USDT"],
+        assetClass: "crypto",
+        marketRegion: "ton",
+        provider: "yfinance",
+      }),
+    ).rejects.toThrow("Unsupported provider 'yfinance' for market 'crypto/ton'.");
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  test("handleDataInfo rejects crypto requests for yfinance before provider transport", async () => {
+    const fetchSpy = spyOn(yfinanceMarket, "fetchYFinanceDatasetDocument").mockImplementation(
+      mock(async () => {
+        throw new Error("provider transport should not run");
+      }),
+    );
+
+    await expect(
+      handleDataInfo({
+        symbol: "TON/USDT",
+        assetClass: "crypto",
+        marketRegion: "ton",
+        provider: "yfinance",
+      }),
+    ).rejects.toThrow("Unsupported provider 'yfinance' for market 'crypto/ton'.");
+
+    expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
   });
 
