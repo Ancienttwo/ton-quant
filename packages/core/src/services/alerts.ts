@@ -1,12 +1,25 @@
 import { join } from "node:path";
+import { z } from "zod";
 import { CONFIG_DIR } from "../types/config.js";
 import { AlertsFileSchema, type FactorAlert, FactorAlertSchema } from "../types/factor-registry.js";
 import { readJsonFile, writeJsonFileAtomic } from "../utils/file-store.js";
-import { mutateWithEvent } from "./event-log.js";
+import { appendEvent, mutateWithEvent } from "./event-log.js";
 import { getFactorDetail } from "./registry.js";
 
 // ── Paths ──────────────────────────────────────────────────
 const ALERTS_PATH = join(CONFIG_DIR, "alerts.json");
+
+const AlertEvaluationStatusSchema = z.enum(["fired", "not-triggered", "failed"]);
+
+const AlertEvaluationSchema = z.object({
+  alert: FactorAlertSchema,
+  status: AlertEvaluationStatusSchema,
+  metricName: z.literal("backtest.sharpe"),
+  metricValue: z.number().optional(),
+  reason: z.string().min(1).optional(),
+});
+
+export type AlertEvaluation = z.infer<typeof AlertEvaluationSchema>;
 
 // ── IO helpers ─────────────────────────────────────────────
 
@@ -104,4 +117,50 @@ export function removeAlert(factorId: string): boolean {
     },
   });
   return result.removed;
+}
+
+export function evaluateAlerts(params: { factorId?: string } = {}): AlertEvaluation[] {
+  const alerts = params.factorId
+    ? readAlerts().filter((alert) => alert.factorId === params.factorId && alert.active)
+    : readAlerts().filter((alert) => alert.active);
+
+  return alerts.map((alert) => {
+    let metricValue: number;
+    try {
+      const detail = getFactorDetail(alert.factorId);
+      metricValue = detail.public.backtest.sharpe;
+    } catch (error) {
+      return AlertEvaluationSchema.parse({
+        alert,
+        status: "failed",
+        metricName: "backtest.sharpe",
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    const triggered =
+      alert.condition === "above" ? metricValue > alert.threshold : metricValue < alert.threshold;
+
+    if (triggered) {
+      appendEvent({
+        type: "factor.alert.fire",
+        entity: { kind: "factor", id: alert.factorId },
+        result: "success",
+        summary: `Factor ${alert.factorId} alert fired.`,
+        payload: {
+          condition: alert.condition,
+          threshold: alert.threshold,
+          metricName: "backtest.sharpe",
+          metricValue,
+        },
+      });
+    }
+
+    return AlertEvaluationSchema.parse({
+      alert,
+      status: triggered ? "fired" : "not-triggered",
+      metricName: "backtest.sharpe",
+      metricValue,
+    });
+  });
 }

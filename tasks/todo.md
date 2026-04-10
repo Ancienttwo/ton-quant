@@ -116,14 +116,58 @@
 - [x] Align HK/CN presets with runnable default-provider behavior
 - [x] Add regression coverage for configured success, unconfigured failure, unsupported combinations, and cache identity
 
+## Workstream 12: Repo Baseline Cleanup
+- [x] Add repo-local plan under `plans/plan-20260409-1541-repo-baseline-cleanup.md`
+- [x] Add execution contract under `tasks/contracts/repo-baseline-cleanup.contract.md`
+- [x] Fix strict-null `packages/core/tests/services/skill-export.test.ts` errors that currently block full `bun typecheck`
+- [x] Fix `apps/web` import-order diagnostics in the known blocker files
+- [x] Fix `apps/web` hook-dependency diagnostics in `BacktestViewer.tsx` and `TerminalDemo.tsx`
+- [x] Fix `apps/web` accessibility and button semantics diagnostics in `FactorDetailModal.tsx` and `Leaderboard.tsx`
+- [x] Re-run full `bun typecheck`
+- [x] Re-run full `bun lint`
+- [x] Re-run full `bun run test`
+
+## Workstream 13: npm CLI Packaging
+- [x] Add repo-local plan under `plans/plan-20260409-1614-npm-cli-packaging.md`
+- [x] Add execution contract under `tasks/contracts/npm-cli-packaging.contract.md`
+- [x] Replace publish-time `workspace:*` runtime assumptions in the CLI package
+- [x] Bundle CLI and quant backend into publishable runtime artifacts
+- [x] Resolve packaged quant backend from the installed package location
+- [x] Point npm `bin` and `files` metadata at publishable artifacts only
+- [x] Add `npm pack` and clean-install smoke verification
+- [x] Verify direct agent invocation works with the packaged backend and no manual env wiring
+- [x] Document Bun runtime requirement and packaged-backend behavior
+
+## Workstream 14: Wallet Factor Publish Platform
+- [x] Add repo-local plan under `plans/plan-20260409-1716-wallet-factor-publish-platform.md`
+- [x] Add execution contract under `tasks/contracts/wallet-factor-publish-platform.contract.md`
+- [x] Add shared publish-platform schemas and helpers in `packages/core`
+- [x] Add `apps/platform-api` with SQLite-backed publish/review/ledger/settlement endpoints
+- [x] Add CLI `factor publish-prepare`, `factor publish-status`, `factor payout-set`, and publish-session orchestration
+- [x] Add minimal web signer page for TonConnect signing sessions
+- [x] Add regression coverage for deterministic prepare flow, signature validation, owner checks, review transitions, payout-forward-only behavior, and settlement batching
+- [x] Re-run full `bun run typecheck`
+- [x] Re-run full `bun run lint`
+- [x] Re-run `HOME=/tmp/tonquant-home-platform bun run test`
+
+## Workstream 15: Automation Gateway Control Plane
+- [x] Add repo-local plan under `plans/plan-20260410-automation-gateway-control-plane.md`
+- [x] Add execution contract under `tasks/contracts/automation-gateway-control-plane.contract.md`
+- [x] Add shared automation schemas and store/service API in `packages/core`
+- [x] Add automation runtime and typed handler registry in `apps/cli/src/automation`
+- [x] Add CLI `automation schedule|list|status|pause|resume|remove|run-now` and `daemon`
+- [x] Persist immutable automation run artifacts under `~/.tonquant/quant/automation-runs/`
+- [x] Reuse existing autoresearch, alerts, and platform services instead of introducing an agent runtime
+- [x] Add regression coverage for scheduling, daemon execution, recovery, and alert evaluation
+
 ## Verification
 - [x] `bun typecheck` (core + cli: 0 errors; quant-backend: excluded)
 - [x] `bun lint` (cli + core: 0 errors; web: pre-existing a11y issues, out of scope)
 - [x] `bun test` — 235 tests, 0 failures
 - [x] Event-log regression suite — 98 targeted tests, 0 failures
 - [x] Scoped Biome check on touched event-log files
-- [ ] Full `bun typecheck` currently blocked by pre-existing `packages/core/tests/services/skill-export.test.ts` errors
-- [ ] Full `bun lint` currently blocked by pre-existing `apps/web` import ordering, a11y, and React hook diagnostics
+- [x] Full `bun typecheck`
+- [x] Full `bun lint`
 - [x] `bun run apps/cli/src/index.ts --help` — Phase 1+2 command groups visible
 - [x] `bun test --max-concurrency 1 apps/cli/tests/quant/autoresearch/lifecycle.test.ts apps/cli/tests/utils/format.test.ts apps/cli/tests/quant/orchestrator.test.ts`
 - [x] `bun run apps/cli/src/index.ts autoresearch --help` — durable lifecycle subcommands visible
@@ -139,5 +183,19 @@
 - [x] `bun test apps/cli/tests/quant/backend/data.test.ts apps/cli/tests/quant/backend/factor.test.ts apps/cli/tests/quant/backend/preset.test.ts apps/cli/tests/quant/orchestrator.test.ts apps/cli/tests/quant/runner/artifact-manager.test.ts`
 - [x] Targeted Biome check on multi-market quant files
 - [x] Targeted Biome check on touched multi-market repair files
-- [ ] Full `bun typecheck` currently blocked by pre-existing `packages/core/tests/services/skill-export.test.ts` errors
-- [ ] Full `bun lint` currently blocked by pre-existing `apps/web` import ordering, a11y, and React hook diagnostics
+- [x] Full `bun run test`
+- [x] `bun run --filter tonquant build`
+- [x] `bun test apps/cli/tests/quant/runner/resolve-cli.test.ts`
+- [x] `bun run --filter tonquant pack:smoke`
+- [x] Full `bun run typecheck`
+- [x] `bun run typecheck` after wallet publish platform implementation
+- [x] `bun run lint` after wallet publish platform implementation
+- [x] `HOME=/tmp/tonquant-home-platform bun run test` after wallet publish platform implementation
+- [x] `bun run --cwd apps/web build` for TonConnect signer page
+- [x] Full `bun run lint`
+- [x] `HOME=/tmp/tonquant-home-packaging bun run test`
+- [x] `bun typecheck` after automation gateway control plane implementation
+- [x] `bun lint` after automation gateway control plane implementation
+- [x] `bun test --max-concurrency 1 --path-ignore-patterns '_ref/**'` after automation gateway control plane implementation
+- [x] `bun run apps/cli/src/index.ts automation --help`
+- [x] `bun run apps/cli/src/index.ts daemon --help`

@@ -21,6 +21,7 @@ build/
 coverage/
 _ref/
 data/
+*.tsbuildinfo
 
 # ===== Environment Variables =====
 .env

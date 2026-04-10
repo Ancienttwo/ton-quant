@@ -1,0 +1,19 @@
+{
+  "name": "@tonquant/platform-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@ton/core": "latest",
+    "@ton/crypto": "latest",
+    "@ton/ton": "latest",
+    "@tonquant/core": "workspace:*",
+    "zod": "^3.24"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

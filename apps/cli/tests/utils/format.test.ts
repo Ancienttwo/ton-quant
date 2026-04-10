@@ -19,6 +19,11 @@ import {
   greenRed,
 } from "../../src/utils/format.js";
 import {
+  formatPlatformPrepared,
+  formatPlatformPublicationStatus,
+  formatPlatformSigningSession,
+} from "../../src/utils/format-platform.js";
+import {
   formatDataFetch,
   formatDataInfo,
   formatAutoresearchList as formatQuantAutoresearchList,
@@ -243,6 +248,173 @@ describe("formatAutoresearchList", () => {
     expect(result).toContain("track-1");
     expect(result).toContain("2");
     expect(result).toContain("1");
+  });
+});
+
+describe("platform formatters", () => {
+  test("formats prepared platform publish actions", () => {
+    const result = formatPlatformPrepared({
+      prepared: {
+        action: "publish_factor",
+        factorSlug: "ton_signal_alpha",
+        factorVersion: "1.0.0",
+        publisherAddress: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        payoutAddress: "0:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        network: "mainnet",
+        audience: "https://publish.tonquant.test",
+        manifest: {
+          kind: "tonquant.factor.publish-manifest",
+          manifestVersion: "1.0.0",
+          factorSlug: "ton_signal_alpha",
+          factorVersion: "1.0.0",
+          factor: {
+            public: {
+              id: "ton_signal_alpha",
+              name: "Alpha",
+              author: "test",
+              category: "momentum",
+              source: "indicator",
+              assets: ["TON"],
+              timeframe: "1d",
+              description: "Alpha",
+              parameters: [],
+              backtest: {
+                sharpe: 1,
+                maxDrawdown: -0.1,
+                winRate: 0.5,
+                cagr: 0.2,
+                dataRange: { start: "2026-01-01", end: "2026-02-01" },
+                tradeCount: 12,
+              },
+              visibility: "free",
+              version: "1.0.0",
+              createdAt: "2026-04-09T00:00:00.000Z",
+              updatedAt: "2026-04-09T00:00:00.000Z",
+            },
+          },
+          preparedAt: "2026-04-09T00:00:00.000Z",
+        },
+      },
+      outputPath: "/tmp/prepared.json",
+    });
+
+    expect(result).toContain("Prepared");
+    expect(result).toContain("ton_signal_alpha");
+    expect(result).toContain("/tmp/prepared.json");
+  });
+
+  test("formats platform signing sessions", () => {
+    const result = formatPlatformSigningSession({
+      sessionId: "sess_123",
+      action: "publish_factor",
+      factorSlug: "ton_signal_alpha",
+      factorVersion: "1.0.0",
+      publisherAddress: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      payoutAddress: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      network: "mainnet",
+      audience: "https://publish.tonquant.test",
+      nonce: "nonce",
+      intent: {
+        kind: "tonquant.factor.publish-intent",
+        action: "publish_factor",
+        factorSlug: "ton_signal_alpha",
+        factorVersion: "1.0.0",
+        publisherAddress: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        payoutAddress: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        manifestSha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        nonce: "nonce",
+        issuedAt: "2026-04-09T00:00:00.000Z",
+        expiresAt: "2026-04-09T00:10:00.000Z",
+        audience: "https://publish.tonquant.test",
+        chain: "ton",
+        network: "mainnet",
+      },
+      intentText: "{}",
+      manifestSha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      status: "pending",
+      signUrl: "https://publish.tonquant.test/sign?session=sess_123",
+      expiresAt: "2026-04-09T00:10:00.000Z",
+      createdAt: "2026-04-09T00:00:00.000Z",
+    });
+
+    expect(result).toContain("Signing session ready");
+    expect(result).toContain("sess_123");
+    expect(result).toContain("Sign URL");
+  });
+
+  test("formats publication status output", () => {
+    const result = formatPlatformPublicationStatus({
+      publication: {
+        publicationId: "pub_123",
+        action: "publish_factor",
+        factorSlug: "ton_signal_alpha",
+        factorVersion: "1.0.0",
+        publisherAddress: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        payoutAddress: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        manifest: {
+          kind: "tonquant.factor.publish-manifest",
+          manifestVersion: "1.0.0",
+          factorSlug: "ton_signal_alpha",
+          factorVersion: "1.0.0",
+          factor: {
+            public: {
+              id: "ton_signal_alpha",
+              name: "Alpha",
+              author: "test",
+              category: "momentum",
+              source: "indicator",
+              assets: ["TON"],
+              timeframe: "1d",
+              description: "Alpha",
+              parameters: [],
+              backtest: {
+                sharpe: 1,
+                maxDrawdown: -0.1,
+                winRate: 0.5,
+                cagr: 0.2,
+                dataRange: { start: "2026-01-01", end: "2026-02-01" },
+                tradeCount: 12,
+              },
+              visibility: "free",
+              version: "1.0.0",
+              createdAt: "2026-04-09T00:00:00.000Z",
+              updatedAt: "2026-04-09T00:00:00.000Z",
+            },
+          },
+          preparedAt: "2026-04-09T00:00:00.000Z",
+        },
+        manifestSha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        intent: {
+          kind: "tonquant.factor.publish-intent",
+          action: "publish_factor",
+          factorSlug: "ton_signal_alpha",
+          factorVersion: "1.0.0",
+          publisherAddress: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          payoutAddress: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          manifestSha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          nonce: "nonce",
+          issuedAt: "2026-04-09T00:00:00.000Z",
+          expiresAt: "2026-04-09T00:10:00.000Z",
+          audience: "https://publish.tonquant.test",
+          chain: "ton",
+          network: "mainnet",
+        },
+        status: "active",
+        createdAt: "2026-04-09T00:00:00.000Z",
+        updatedAt: "2026-04-09T00:01:00.000Z",
+        signedAt: "2026-04-09T00:00:30.000Z",
+      },
+      activeVersion: {
+        factorSlug: "ton_signal_alpha",
+        factorVersion: "1.0.0",
+        manifestSha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        activatedAt: "2026-04-09T00:01:00.000Z",
+      },
+    });
+
+    expect(result).toContain("pub_123");
+    expect(result).toContain("Active version");
+    expect(result).toContain("ton_signal_alpha");
   });
 });
 

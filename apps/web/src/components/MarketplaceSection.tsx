@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from "react";
-import { Leaderboard } from "./Leaderboard";
-import { FactorDetailModal } from "./FactorDetailModal";
+import { useCallback, useMemo, useState } from "react";
 import { MOCK_FACTORS } from "../data/mock-factors";
+import { FactorDetailModal } from "./FactorDetailModal";
+import { Leaderboard } from "./Leaderboard";
 import "./marketplace.css";
 
 export function MarketplaceSection() {

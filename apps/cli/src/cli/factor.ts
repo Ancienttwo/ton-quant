@@ -7,6 +7,7 @@ import { registerFactorAlertCommands } from "./factor-alert.js";
 import { registerFactorBacktestCommands } from "./factor-backtest.js";
 import { registerFactorComposeCommands } from "./factor-compose.js";
 import { registerFactorMarketplaceCommands } from "./factor-core.js";
+import { registerFactorPlatformCommands } from "./factor-platform.js";
 import { registerFactorReportCommands } from "./factor-report.js";
 import { registerFactorSeedCommands } from "./factor-seed.js";
 import { registerFactorSkillCommands } from "./factor-skill.js";
@@ -64,6 +65,7 @@ export function registerFactorCommand(program: Command): void {
 
   // Marketplace commands (publish, discover, subscribe, top, etc.)
   registerFactorMarketplaceCommands(command);
+  registerFactorPlatformCommands(command);
 
   // Composition commands (compose, composites, composite, composite-delete)
   registerFactorComposeCommands(command);

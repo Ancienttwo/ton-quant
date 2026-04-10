@@ -7,10 +7,34 @@ export { SEED_FACTORS } from "./data/seed-factors.js";
 export { ServiceError } from "./errors.js";
 // Factor Alert Service
 export {
+  evaluateAlerts,
   listAlerts,
   removeAlert,
   setAlert,
 } from "./services/alerts.js";
+export {
+  AutomationDaemonLockError,
+  AutomationError,
+  AutomationHandlerRegistry,
+  AutomationJobCorruptedError,
+  AutomationJobNotFoundError,
+  AutomationJobStateError,
+  acquireAutomationDaemonLock,
+  claimAutomationJob,
+  claimNextDueAutomationJob,
+  completeAutomationJob,
+  computeNextRunAt,
+  failAutomationJob,
+  getAutomationDaemonLockPath,
+  getAutomationJob,
+  listAutomationJobs,
+  pauseAutomationJob,
+  reconcileAutomationJob,
+  recoverExpiredAutomationJobs,
+  removeAutomationJob,
+  resumeAutomationJob,
+  scheduleAutomationJob,
+} from "./services/automation.js";
 export {
   buildPriceIndex,
   cachedFindAssetBySymbol,
@@ -42,6 +66,24 @@ export {
   queryEvents,
   readEvents,
 } from "./services/event-log.js";
+export {
+  buildIntentText,
+  buildPreparedPlatformAction,
+  buildPublishIntent,
+  buildPublishManifest,
+  buildSigningSession,
+  createNonce,
+  createPublicationId,
+  createSessionId,
+  createSettlementBatchId,
+  hashManifest,
+  normalizeTonAddress,
+  PlatformPublishError,
+  sha256Hex,
+  stringifyCanonicalJson,
+  verifyTonConnectIntentSignature,
+  verifyWalletPublicKeyMatchesAddress,
+} from "./services/platform-publish.js";
 export {
   fetchBalanceData,
   fetchHistoryData,
@@ -103,6 +145,7 @@ export {
   type TransactionEvent,
   TransactionEventSchema,
 } from "./types/api.js";
+export * from "./types/automation.js";
 // Types — Config
 export {
   CONFIG_DIR,
@@ -190,6 +233,44 @@ export {
   FactorSubscriptionSchema,
   ReportsFileSchema,
 } from "./types/factor-registry.js";
+export type {
+  CommissionEventInput,
+  CommissionLedgerEntry,
+  PayoutChangeResult,
+  PlatformAction,
+  PreparedPlatformAction,
+  PublicationRecord,
+  PublicationStatus,
+  PublicationStatusResponse,
+  PublishIntent,
+  PublishManifest,
+  RawTonAddress,
+  SettlementBatch,
+  SettlementStatus,
+  SigningSession,
+  SigningSessionStatus,
+  TonConnectSignDataResult,
+  TonNetwork,
+} from "./types/platform-publish.js";
+export {
+  CommissionEventInputSchema,
+  CommissionLedgerEntrySchema,
+  PayoutChangeResultSchema,
+  PlatformActionSchema,
+  PreparedPlatformActionSchema,
+  PublicationRecordSchema,
+  PublicationStatusResponseSchema,
+  PublicationStatusSchema,
+  PublishIntentSchema,
+  PublishManifestSchema,
+  RawTonAddressSchema,
+  SettlementBatchSchema,
+  SettlementStatusSchema,
+  SigningSessionSchema,
+  SigningSessionStatusSchema,
+  TonConnectSignDataResultSchema,
+  TonNetworkSchema,
+} from "./types/platform-publish.js";
 export { decrypt, encrypt, loadOrCreateKey } from "./utils/crypto.js";
 // Utils
 export { calcUsdValue, fromRawUnits, toRawUnits } from "./utils/units.js";

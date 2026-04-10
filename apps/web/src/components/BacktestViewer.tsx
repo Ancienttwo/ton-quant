@@ -1,9 +1,9 @@
+import { AreaSeries, ColorType, createChart, type IChartApi } from "lightweight-charts";
 import { useEffect, useRef } from "react";
-import { createChart, type IChartApi, ColorType, AreaSeries } from "lightweight-charts";
-import { MetricBadge } from "./MetricBadge";
 import { generateEquityCurve } from "../data/mock-factors";
+import { cagrLevel, drawdownLevel, levelToToken, sharpeLevel } from "../data/thresholds";
 import type { FactorMetaPublic } from "../data/types";
-import { sharpeLevel, cagrLevel, drawdownLevel, levelToToken } from "../data/thresholds";
+import { MetricBadge } from "./MetricBadge";
 
 interface BacktestViewerProps {
   readonly factor: FactorMetaPublic;
@@ -52,7 +52,7 @@ export function BacktestViewer({ factor }: BacktestViewerProps) {
       lineWidth: 2,
     });
 
-    const curveData = generateEquityCurve(factor.backtest);
+    const curveData = generateEquityCurve(backtest);
     series.setData(curveData);
     chart.timeScale().fitContent();
     chartRef.current = chart;
@@ -70,7 +70,7 @@ export function BacktestViewer({ factor }: BacktestViewerProps) {
       chart.remove();
       chartRef.current = null;
     };
-  }, [factor.id]);
+  }, [backtest]);
 
   return (
     <div className="backtest-viewer">
@@ -97,11 +97,7 @@ export function BacktestViewer({ factor }: BacktestViewerProps) {
           value={`${(backtest.winRate * 100).toFixed(0)}%`}
           color="primary"
         />
-        <MetricBadge
-          label="TRADE COUNT"
-          value={String(backtest.tradeCount)}
-          color="primary"
-        />
+        <MetricBadge label="TRADE COUNT" value={String(backtest.tradeCount)} color="primary" />
         <MetricBadge
           label="DATA RANGE"
           value={`${backtest.dataRange.start} \u2192 ${backtest.dataRange.end}`}

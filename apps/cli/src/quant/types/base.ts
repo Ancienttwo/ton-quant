@@ -98,5 +98,6 @@ export const QuantArtifactDomainSchema = z.enum([
   "presets",
   "autoresearch",
   "autoresearch-runs",
+  "automation-runs",
 ]);
 export type QuantArtifactDomain = z.infer<typeof QuantArtifactDomainSchema>;

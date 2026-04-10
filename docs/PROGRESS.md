@@ -19,3 +19,4 @@
 | 2026-04-09 | YFinance Phase 1: real provider-backed `data fetch|info|list` for US/HK/CN equities | Done |
 | 2026-04-09 | Provider boundary unification: autoresearch transport artifacts + canonical provider compatibility | Done |
 | 2026-04-09 | OpenBB Phase 2: explicit HK/CN equity provider transport, honest defaults, coded-error transport | Done |
+| 2026-04-09 | Repo baseline cleanup: restored full root typecheck, lint, and scripted test verification | Done |

@@ -1,15 +1,30 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { seedRegistry } from "../../src/services/seed.js";
 import { exportTopFactorsAsSkills, formatSkillMarkdown } from "../../src/services/skill-export.js";
 
 const INDEX_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "registry", "factors.json");
+const EVENT_LOG_PATH = join(
+  process.env.HOME ?? "/tmp",
+  ".tonquant",
+  "test-skill-export-events.jsonl",
+);
+const EVENT_LOG_LOCK_PATH = `${EVENT_LOG_PATH}.lock`;
 
 describe("skill export service", () => {
   beforeEach(() => {
     if (existsSync(INDEX_PATH)) rmSync(INDEX_PATH);
+    if (existsSync(EVENT_LOG_PATH)) rmSync(EVENT_LOG_PATH);
+    if (existsSync(EVENT_LOG_LOCK_PATH)) rmSync(EVENT_LOG_LOCK_PATH);
+    process.env.TONQUANT_EVENT_LOG_PATH = EVENT_LOG_PATH;
     seedRegistry();
+  });
+
+  afterEach(() => {
+    if (existsSync(EVENT_LOG_PATH)) rmSync(EVENT_LOG_PATH);
+    if (existsSync(EVENT_LOG_LOCK_PATH)) rmSync(EVENT_LOG_LOCK_PATH);
+    delete process.env.TONQUANT_EVENT_LOG_PATH;
   });
 
   it("exports top factors as skill definitions", () => {
@@ -17,13 +32,21 @@ describe("skill export service", () => {
     expect(skills.length).toBe(5);
     // Should be sorted by Sharpe (descending)
     for (let i = 1; i < skills.length; i++) {
-      expect(skills[i - 1]?.sharpe).toBeGreaterThanOrEqual(skills[i]?.sharpe);
+      const previousSkill = skills[i - 1];
+      const currentSkill = skills[i];
+      if (!previousSkill || !currentSkill) {
+        throw new Error("expected sorted factor skills to contain adjacent entries");
+      }
+      expect(previousSkill.sharpe).toBeGreaterThanOrEqual(currentSkill.sharpe);
     }
   });
 
   it("skill has all required fields", () => {
     const skills = exportTopFactorsAsSkills(1);
     const skill = skills[0];
+    if (!skill) {
+      throw new Error("expected one exported skill");
+    }
     expect(skill.name).toBeTruthy();
     expect(skill.factorId).toBeTruthy();
     expect(skill.category).toBeTruthy();

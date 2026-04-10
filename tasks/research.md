@@ -211,3 +211,94 @@ Not recommended now:
   - backend-coded errors now cross the CLI boundary through a dedicated structured stderr marker instead of regex-scraping human log lines
   - OpenBB HTTP error details are whitespace-compacted before being surfaced, so remote response text cannot inject extra log lines into the coded-error path
   - credential-bearing OpenBB requests are refused over non-HTTPS transport unless the target is loopback (`localhost`, `127.0.0.1`, `::1`)
+
+## Repo Baseline Cleanup Notes (verified 2026-04-09)
+
+- Full root verification is now blocked by a small fixed set of pre-existing failures rather than broad unknown repo drift.
+- `bun typecheck` currently fails only in `packages/core/tests/services/skill-export.test.ts`:
+  - one `number | undefined` to `number | bigint` mismatch in a `toBeGreaterThanOrEqual(...)` assertion path
+  - multiple `'skill' is possibly 'undefined'` strict-null errors after indexing `skills[0]`
+- `bun lint` currently fails in these verified `apps/web` files:
+  - `src/App.tsx` — import ordering
+  - `src/components/BacktestViewer.tsx` — import ordering and hook dependency correctness
+  - `src/components/FactorDetailModal.tsx` — import ordering, non-semantic click targets, missing button types
+  - `src/components/Leaderboard.tsx` — import ordering, missing button types, sortable header semantics
+  - `src/components/MarketplaceSection.tsx` — import ordering
+  - `src/components/TerminalDemo.tsx` — hook dependency correctness
+- The right cleanup posture is narrow:
+  - restore full `bun typecheck`
+  - restore full `bun lint`
+  - avoid turning the cleanup into frontend redesign or unrelated refactoring
+- Implementation outcome:
+  - `packages/core/tests/services/skill-export.test.ts` is now strict-null-safe without weakening production contracts
+  - the known `apps/web` blocker set is lint-clean after import ordering, hook dependency, and semantic button fixes
+  - modal backdrop closing now uses a dedicated backdrop button rather than an interactive static container
+  - root verification is green again through the repo-defined scripts:
+    - `bun run typecheck`
+    - `bun run lint`
+    - `bun run test`
+- Important repo detail:
+  - bare `bun test` from the repo root bypasses the package-script `_ref/**` ignore pattern and will sweep the OpenAlice mirror into the run
+  - the authoritative root verification command for this repo is `bun run test`, not raw `bun test`
+
+## npm Packaging Notes (researched 2026-04-09)
+
+- Current packaging blockers are structural, not code-quality blockers:
+  - `apps/cli/package.json` publishes `bin` from source and depends on `@tonquant/core` via `workspace:*`
+  - quant backend discovery is monorepo-relative today, so a global npm install will not find the backend
+- Official npm package metadata docs confirm the publish surface is controlled by `name`, `version`, `bin`, `files`, and optional bundled dependency fields.
+- Official Bun bundler docs confirm Bun-target bundles are the right fit for shipping JS artifacts that still require Bun at runtime.
+- Official Bun executable docs confirm compiled standalone executables are target-platform specific, which makes them a poor primary vehicle for a cross-platform npm package.
+- Packaging recommendation:
+  - publish one `tonquant` package first
+  - bundle CLI and backend into package-local artifacts
+  - keep Bun as an explicit runtime requirement
+  - preserve the current agent contract where OpenClaw or another agent can run `tonquant` directly after install
+  - defer multi-package publishing and native executables to later phases
+
+## npm Packaging Implementation Notes (verified 2026-04-09)
+
+- `apps/cli` now builds two Bun-targeted artifacts into `dist/`:
+  - `dist/index.js`
+  - `dist/quant-backend.js`
+- The publish surface now points `bin.tonquant` at `./dist/index.js` and limits package files to the bundled runtime artifacts plus package README.
+- Source-only dependencies, including `@tonquant/core`, now stay out of runtime `dependencies`; the installed package no longer requires npm to understand workspace runtime edges.
+- Quant backend resolution now uses an explicit search order:
+  - `TONQUANT_QUANT_CLI`
+  - `TONQUANT_QUANT_PYTHON_PROJECT`
+  - packaged `quant-backend.js` adjacent to the installed CLI entrypoint
+  - source-monorepo fallbacks for local development
+- Packaging verification now has a scripted smoke path:
+  - build artifacts
+  - `npm pack --ignore-scripts` with a temp npm cache
+  - inspect packed `package.json`
+  - clean temp install of the tarball
+  - run `tonquant --help`, `tonquant price --help`, and `tonquant data list --json`
+  - run direct `tonquant ...` invocation from an arbitrary cwd with `node_modules/.bin` on `PATH`
+- Sandbox verification note:
+  - raw `bun run test` in this Codex sandbox still inherits an unwritable real home directory, so repo-wide test verification here must set `HOME` to a temp directory before running the root script
+
+## Wallet Publish Platform Notes (researched 2026-04-09)
+
+- The current factor marketplace is still local-only:
+  - local factor metadata lives in `packages/core/src/types/factor-registry.ts`
+  - local factor state mutations live in `packages/core/src/services/registry.ts`
+  - audit semantics already exist in `packages/core/src/services/event-log.ts`
+- The right reuse boundary is not "extend local `factor publish` until it becomes a platform".
+  - local registry should remain the publish-preparation source
+  - platform publication needs its own state source for nonce, ownership, review, ledger, and settlement
+- Existing TON capability already covers the hard cryptographic prerequisites:
+  - `@ton/crypto` and `@ton/ton` are present in `packages/core`
+  - `packages/core/src/services/wallet.ts` already derives wallet addresses via `WalletContractV5R1`
+- TonConnect `signData` is a viable off-chain publish-signing primitive.
+  - official SDK docs expose `signData`
+  - official protocol docs define the backend-verifiable signature payload for text, binary, and cell data
+  - the DApp must explicitly set signer address and network to avoid wallet-side ambiguity
+- Structural correction to the original plan:
+  - a happy-path agent publisher flow requires a signer surface
+  - the repo has no current TonConnect-capable surface, so a minimal signer page must ship in the same phase
+- Settlement correction to the original plan:
+  - v1 should support native TON only
+  - batch submission should keep a submission reference / message hash first and reconcile chain transaction status asynchronously rather than assuming synchronous `txHash` availability
+- Review correction to the original plan:
+  - `pending_review` is only a real state if the same phase ships an explicit approve/reject path with persisted reasons
