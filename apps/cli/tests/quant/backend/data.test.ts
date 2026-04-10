@@ -2,6 +2,7 @@ import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import * as coreMarket from "@tonquant/core";
 // @ts-expect-error - backend fixtures are runtime-tested outside the CLI tsconfig boundary
 import {
   handleDataFetch,
@@ -238,6 +239,100 @@ describe("data handler", () => {
         provider: "yfinance",
       }),
     ).toThrow("Unsupported provider 'yfinance' for market 'crypto/ton'.");
+  });
+
+  test("backend global crypto resolution defaults to Binance", () => {
+    const instrument = resolveInstrument({
+      symbol: "BTC",
+      assetClass: "crypto",
+      marketRegion: "global",
+    });
+
+    expect(instrument.provider).toBe("binance");
+    expect(instrument.venue).toBe("binance");
+    expect(instrument.providerSymbols.binance).toBe("BTCUSDT");
+  });
+
+  test("handleDataInfo uses live public-market candles for Binance global crypto", async () => {
+    const fetchSpy = spyOn(coreMarket, "fetchMarketCandlesData").mockResolvedValue({
+      symbol: "BTC",
+      interval: "1d",
+      candles: [
+        {
+          open_time: "2026-04-08T00:00:00.000Z",
+          close_time: "2026-04-08T23:59:59.999Z",
+          open: "70000",
+          high: "73000",
+          low: "69000",
+          close: "72000",
+          volume: "123456",
+        },
+      ],
+      trust: {
+        provider: "binance",
+        venue: "binance",
+        provider_symbol: "BTCUSDT",
+        quote_currency: "USDT",
+        market_type: "spot",
+        observed_at: "2026-04-09T00:00:00.000Z",
+        age_seconds: 0,
+      },
+    });
+
+    const result = await handleDataInfo({
+      symbol: "BTC",
+      assetClass: "crypto",
+      marketRegion: "global",
+      provider: "binance",
+    });
+    const dataset = result.dataset as {
+      symbol: string;
+      instrument: { provider: string; venue: string; marketRegion: string };
+      barCount: number;
+    };
+
+    expect(dataset.symbol).toBe("BTC");
+    expect(dataset.instrument.provider).toBe("binance");
+    expect(dataset.instrument.venue).toBe("binance");
+    expect(dataset.instrument.marketRegion).toBe("global");
+    expect(dataset.barCount).toBe(1);
+    fetchSpy.mockRestore();
+  });
+
+  test("handleDataFetch requests 90 bars by default for global crypto market data", async () => {
+    const fetchSpy = spyOn(coreMarket, "fetchMarketCandlesData").mockResolvedValue({
+      symbol: "BTC",
+      interval: "1d",
+      candles: Array.from({ length: 90 }, (_, index) => ({
+        open_time: new Date(Date.UTC(2026, 0, index + 1)).toISOString(),
+        close_time: new Date(Date.UTC(2026, 0, index + 1, 23, 59, 59, 999)).toISOString(),
+        open: "1",
+        high: "1",
+        low: "1",
+        close: "1",
+        volume: "1",
+      })),
+      trust: {
+        provider: "binance",
+        venue: "binance",
+        provider_symbol: "BTCUSDT",
+        quote_currency: "USDT",
+        market_type: "spot",
+        observed_at: "2026-04-09T00:00:00.000Z",
+        age_seconds: 0,
+      },
+    });
+
+    const result = await handleDataFetch({
+      symbols: ["BTC"],
+      assetClass: "crypto",
+      marketRegion: "global",
+      provider: "binance",
+    });
+
+    expect(fetchSpy.mock.calls[0]?.[1]).toMatchObject({ limit: 90 });
+    expect(result.barCount).toBe(90);
+    fetchSpy.mockRestore();
   });
 
   test("handleDataFetch writes distinct cache files for same symbol across providers", async () => {

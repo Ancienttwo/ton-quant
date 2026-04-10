@@ -68,4 +68,29 @@ describe("request-market", () => {
       );
     }
   });
+
+  test("defaults global crypto selection to Binance", () => {
+    const result = resolveInstrumentSelection({
+      symbols: ["BTC"],
+      assetClass: "crypto",
+      marketRegion: "global",
+    });
+
+    expect(result.provider).toBe("binance");
+    expect(result.venue).toBe("binance");
+    expect(result.instruments[0]?.providerSymbols.binance).toBe("BTCUSDT");
+  });
+
+  test("resolves explicit Hyperliquid global crypto requests", () => {
+    const result = resolveInstrumentSelection({
+      symbols: ["BTC"],
+      assetClass: "crypto",
+      marketRegion: "global",
+      provider: "hyperliquid",
+    });
+
+    expect(result.provider).toBe("hyperliquid");
+    expect(result.venue).toBe("hyperliquid");
+    expect(result.instruments[0]?.providerSymbols.hyperliquid).toBe("BTC");
+  });
 });

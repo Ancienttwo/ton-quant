@@ -1,5 +1,6 @@
 import { loadConfig } from "../config/index.js";
 import { ServiceError } from "../errors.js";
+import type { Asset } from "../types/api.js";
 import type {
   BalanceData,
   HistoryData,
@@ -12,7 +13,7 @@ import type {
 import { calcUsdValue, fromRawUnits, toRawUnits } from "../utils/units.js";
 import {
   buildPriceIndex,
-  cachedFindAssetBySymbol,
+  cachedFindAssetsBySymbol,
   cachedGetAssets,
   cachedGetPools,
 } from "./cache.js";
@@ -38,11 +39,26 @@ function aggregateVolume(
   return total > 0 ? total.toFixed(2) : "N/A";
 }
 
-export async function fetchPriceData(symbol: string): Promise<PriceData> {
-  const asset = await cachedFindAssetBySymbol(symbol);
-  if (!asset) {
+async function resolveUniqueTonAssetBySymbol(symbol: string): Promise<Asset> {
+  const matches = await cachedFindAssetsBySymbol(symbol);
+  if (matches.length === 0) {
     throw new ServiceError(`Token "${symbol}" not found`, "TOKEN_NOT_FOUND");
   }
+  if (matches.length > 1) {
+    throw new ServiceError(
+      `TON symbol "${symbol.toUpperCase()}" is ambiguous across ${matches.length} assets. Use 'tonquant market quote ${symbol.toUpperCase()}' for generic market data.`,
+      "TON_SYMBOL_AMBIGUOUS",
+    );
+  }
+  const match = matches[0];
+  if (!match) {
+    throw new ServiceError(`Token "${symbol}" not found`, "TOKEN_NOT_FOUND");
+  }
+  return match;
+}
+
+export async function fetchPriceData(symbol: string): Promise<PriceData> {
+  const asset = await resolveUniqueTonAssetBySymbol(symbol);
 
   const pools = await cachedGetPools();
   const volume = aggregateVolume(pools, asset.contract_address);
@@ -63,17 +79,8 @@ export async function fetchPriceData(symbol: string): Promise<PriceData> {
  */
 export async function fetchPoolData(symbolA: string, symbolB: string): Promise<PoolData> {
   const assets = await cachedGetAssets();
-  const upperA = symbolA.toUpperCase();
-  const upperB = symbolB.toUpperCase();
-  const assetA = assets.find((a) => a.symbol.toUpperCase() === upperA);
-  const assetB = assets.find((a) => a.symbol.toUpperCase() === upperB);
-
-  if (!assetA) {
-    throw new ServiceError(`Token "${symbolA}" not found`, "TOKEN_NOT_FOUND");
-  }
-  if (!assetB) {
-    throw new ServiceError(`Token "${symbolB}" not found`, "TOKEN_NOT_FOUND");
-  }
+  const assetA = await resolveUniqueTonAssetBySymbol(symbolA);
+  const assetB = await resolveUniqueTonAssetBySymbol(symbolB);
 
   const pools = await cachedGetPools();
   const pool = pools.find(
@@ -202,15 +209,8 @@ export async function fetchSwapSimulation(
   amount: string,
   slippagePct: string,
 ): Promise<SwapSimulationData> {
-  const fromAsset = await cachedFindAssetBySymbol(from);
-  const toAsset = await cachedFindAssetBySymbol(to);
-
-  if (!fromAsset) {
-    throw new ServiceError(`Token "${from}" not found`, "TOKEN_NOT_FOUND");
-  }
-  if (!toAsset) {
-    throw new ServiceError(`Token "${to}" not found`, "TOKEN_NOT_FOUND");
-  }
+  const fromAsset = await resolveUniqueTonAssetBySymbol(from);
+  const toAsset = await resolveUniqueTonAssetBySymbol(to);
 
   const slippage = (Number.parseFloat(slippagePct) / 100).toString();
   const rawUnits = toRawUnits(amount, fromAsset.decimals);

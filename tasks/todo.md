@@ -199,3 +199,25 @@
 - [x] `bun test --max-concurrency 1 --path-ignore-patterns '_ref/**'` after automation gateway control plane implementation
 - [x] `bun run apps/cli/src/index.ts automation --help`
 - [x] `bun run apps/cli/src/index.ts daemon --help`
+
+## Workstream 16: Market-First Public Data Foundation
+- [x] Add repo-local plan under `plans/plan-20260410-1448-market-first-public-data-foundation.md`
+- [x] Add execution contract under `tasks/contracts/market-first-public-data-foundation.contract.md`
+- [x] Expand the shared crypto market contract across CLI and quant-backend for non-TON public markets
+- [x] Add Binance and Hyperliquid public quote/candle providers with Zod-validated payloads
+- [x] Add dedicated market-first schemas and formatters with trust metadata
+- [x] Add explicit `market` CLI namespace for quote/search/compare/candles
+- [x] Keep `price` as a TON-scoped legacy path with clear migration guidance
+- [x] Add request-keyed cache isolation for public market data
+- [x] Add migration-seam regression coverage across core, CLI, and quant-backend
+
+## Verification
+- [x] `bun test packages/core/tests/services/market.test.ts packages/core/tests/services/queries.test.ts apps/cli/tests/quant/api/request-market.test.ts apps/cli/tests/quant/backend/data.test.ts`
+- [x] `bun run apps/cli/src/index.ts market quote BTC --json`
+- [x] `bun run apps/cli/src/index.ts market search BTC --json`
+- [x] `bun run apps/cli/src/index.ts market compare BTC --json`
+- [x] `bun run apps/cli/src/index.ts market candles BTC --provider hyperliquid --interval 1d --limit 2 --json`
+- [x] `bun run apps/cli/src/index.ts price BTC --json`
+- [x] `bun run typecheck`
+- [x] `bun run lint`
+- [x] `bun run test`

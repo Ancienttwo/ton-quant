@@ -64,6 +64,15 @@ export async function cachedFindAssetBySymbol(symbol: string): Promise<Asset | u
 }
 
 /**
+ * Find all assets by symbol (case-insensitive) from cached assets.
+ */
+export async function cachedFindAssetsBySymbol(symbol: string): Promise<Asset[]> {
+  const assets = await cachedGetAssets();
+  const upper = symbol.toUpperCase();
+  return assets.filter((a) => a.symbol.toUpperCase() === upper);
+}
+
+/**
  * Clear all caches (for testing).
  */
 export function clearCache(): void {
