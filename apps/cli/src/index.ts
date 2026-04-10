@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
+import { registerAutomationCommand, registerDaemonCommand } from "./cli/automation.js";
 import { registerAutoresearchCommand } from "./cli/autoresearch.js";
 import { registerBacktestCommand } from "./cli/backtest.js";
 import { registerBalanceCommand } from "./cli/balance.js";
@@ -40,5 +41,7 @@ registerFactorCommand(program);
 registerBacktestCommand(program);
 registerPresetCommand(program);
 registerAutoresearchCommand(program);
+registerAutomationCommand(program);
+registerDaemonCommand(program);
 
 program.parse();

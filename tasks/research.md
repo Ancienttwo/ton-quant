@@ -240,3 +240,65 @@ Not recommended now:
 - Important repo detail:
   - bare `bun test` from the repo root bypasses the package-script `_ref/**` ignore pattern and will sweep the OpenAlice mirror into the run
   - the authoritative root verification command for this repo is `bun run test`, not raw `bun test`
+
+## npm Packaging Notes (researched 2026-04-09)
+
+- Current packaging blockers are structural, not code-quality blockers:
+  - `apps/cli/package.json` publishes `bin` from source and depends on `@tonquant/core` via `workspace:*`
+  - quant backend discovery is monorepo-relative today, so a global npm install will not find the backend
+- Official npm package metadata docs confirm the publish surface is controlled by `name`, `version`, `bin`, `files`, and optional bundled dependency fields.
+- Official Bun bundler docs confirm Bun-target bundles are the right fit for shipping JS artifacts that still require Bun at runtime.
+- Official Bun executable docs confirm compiled standalone executables are target-platform specific, which makes them a poor primary vehicle for a cross-platform npm package.
+- Packaging recommendation:
+  - publish one `tonquant` package first
+  - bundle CLI and backend into package-local artifacts
+  - keep Bun as an explicit runtime requirement
+  - preserve the current agent contract where OpenClaw or another agent can run `tonquant` directly after install
+  - defer multi-package publishing and native executables to later phases
+
+## npm Packaging Implementation Notes (verified 2026-04-09)
+
+- `apps/cli` now builds two Bun-targeted artifacts into `dist/`:
+  - `dist/index.js`
+  - `dist/quant-backend.js`
+- The publish surface now points `bin.tonquant` at `./dist/index.js` and limits package files to the bundled runtime artifacts plus package README.
+- Source-only dependencies, including `@tonquant/core`, now stay out of runtime `dependencies`; the installed package no longer requires npm to understand workspace runtime edges.
+- Quant backend resolution now uses an explicit search order:
+  - `TONQUANT_QUANT_CLI`
+  - `TONQUANT_QUANT_PYTHON_PROJECT`
+  - packaged `quant-backend.js` adjacent to the installed CLI entrypoint
+  - source-monorepo fallbacks for local development
+- Packaging verification now has a scripted smoke path:
+  - build artifacts
+  - `npm pack --ignore-scripts` with a temp npm cache
+  - inspect packed `package.json`
+  - clean temp install of the tarball
+  - run `tonquant --help`, `tonquant price --help`, and `tonquant data list --json`
+  - run direct `tonquant ...` invocation from an arbitrary cwd with `node_modules/.bin` on `PATH`
+- Sandbox verification note:
+  - raw `bun run test` in this Codex sandbox still inherits an unwritable real home directory, so repo-wide test verification here must set `HOME` to a temp directory before running the root script
+
+## Wallet Publish Platform Notes (researched 2026-04-09)
+
+- The current factor marketplace is still local-only:
+  - local factor metadata lives in `packages/core/src/types/factor-registry.ts`
+  - local factor state mutations live in `packages/core/src/services/registry.ts`
+  - audit semantics already exist in `packages/core/src/services/event-log.ts`
+- The right reuse boundary is not "extend local `factor publish` until it becomes a platform".
+  - local registry should remain the publish-preparation source
+  - platform publication needs its own state source for nonce, ownership, review, ledger, and settlement
+- Existing TON capability already covers the hard cryptographic prerequisites:
+  - `@ton/crypto` and `@ton/ton` are present in `packages/core`
+  - `packages/core/src/services/wallet.ts` already derives wallet addresses via `WalletContractV5R1`
+- TonConnect `signData` is a viable off-chain publish-signing primitive.
+  - official SDK docs expose `signData`
+  - official protocol docs define the backend-verifiable signature payload for text, binary, and cell data
+  - the DApp must explicitly set signer address and network to avoid wallet-side ambiguity
+- Structural correction to the original plan:
+  - a happy-path agent publisher flow requires a signer surface
+  - the repo has no current TonConnect-capable surface, so a minimal signer page must ship in the same phase
+- Settlement correction to the original plan:
+  - v1 should support native TON only
+  - batch submission should keep a submission reference / message hash first and reconcile chain transaction status asynchronously rather than assuming synchronous `txHash` availability
+- Review correction to the original plan:
+  - `pending_review` is only a real state if the same phase ships an explicit approve/reject path with persisted reasons

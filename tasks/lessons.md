@@ -24,4 +24,5 @@
 ## Verification Boundaries
 
 - Repo-wide verification should use the root package scripts when they encode intentional test scoping; in this repo, `bun run test` is authoritative because it excludes `_ref/**` mirrors that are not part of the maintained test surface.
+- When running repo-wide tests in a sandboxed environment, point `HOME` at a writable temp directory if the suite intentionally exercises config, artifact, or event-log paths under `~/.tonquant`; otherwise verification failures can be sandbox artifacts instead of code regressions.
 - Fix lint-driven accessibility issues with semantic elements first. Adding ARIA roles to interactive `div` containers is a weaker fallback than using an actual button or restructuring the DOM.

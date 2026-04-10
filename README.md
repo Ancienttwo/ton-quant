@@ -4,7 +4,7 @@ TON DeFi market research and trading CLI — built for AI Agents.
 
 > **TON AI Agent Hackathon** · Track 1: Agent Infrastructure
 >
-> **Website**: [tonquant.com](https://tonquant.com) · **npm**: `bun install -g tonquant`
+> **Website**: [tonquant.com](https://tonquant.com) · **npm**: `npm install -g tonquant`
 
 <p align="center">
   <img src="demo/demo.svg" alt="TonQuant Demo" width="800" />
@@ -26,8 +26,8 @@ A command-line tool that lets AI Agents (like OpenClaw) and developers perform q
 ## Quick Start
 
 ```bash
-# Install (requires Bun — https://bun.sh)
-bun install -g tonquant
+# Install (requires Bun on PATH — https://bun.sh)
+npm install -g tonquant
 
 # Try it out
 tonquant trending --limit 5
@@ -35,6 +35,8 @@ tonquant price TON
 tonquant pools USDT/TON
 tonquant research NOT --json
 ```
+
+`tonquant` ships with its bundled quant backend in the published package. Support commands and quant commands work after install without manually setting `TONQUANT_QUANT_CLI`.
 
 ## Commands
 

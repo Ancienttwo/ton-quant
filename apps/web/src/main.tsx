@@ -1,3 +1,4 @@
+import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
@@ -11,6 +12,8 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <TonConnectUIProvider manifestUrl={`${window.location.origin}/tonconnect-manifest.json`}>
+      <App />
+    </TonConnectUIProvider>
   </StrictMode>,
 );

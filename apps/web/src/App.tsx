@@ -1,8 +1,13 @@
 import { MarketplaceSection } from "./components/MarketplaceSection";
+import { SignerPage } from "./components/SignerPage";
 import { TerminalDemo } from "./components/TerminalDemo";
 import "./App.css";
 
 function App() {
+  if (window.location.pathname === "/sign") {
+    return <SignerPage />;
+  }
+
   return (
     <>
       <div className="grid-bg" />

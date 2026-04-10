@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { listAlerts, removeAlert, setAlert } from "../../src/services/alerts.js";
+import { evaluateAlerts, listAlerts, removeAlert, setAlert } from "../../src/services/alerts.js";
 import { readEvents } from "../../src/services/event-log.js";
 import { FactorNotFoundError, publishFactor } from "../../src/services/registry.js";
 import type { FactorMetaPublic } from "../../src/types/factor-registry.js";
@@ -162,5 +162,81 @@ describe("alert service", () => {
   it("does not append an event for no-op alert removal", () => {
     expect(removeAlert("no_such_alert")).toBe(false);
     expect(readEvents()).toEqual([]);
+  });
+
+  it("evaluates fired and not-triggered alerts", () => {
+    setAlert("alert_test_factor", "above", 1.0);
+    setAlert("alert_test_factor", "below", 1.0);
+
+    const evaluations = evaluateAlerts({ factorId: "alert_test_factor" });
+    expect(evaluations).toHaveLength(2);
+    expect(evaluations.some((item) => item.status === "fired")).toBe(true);
+    expect(evaluations.some((item) => item.status === "not-triggered")).toBe(true);
+
+    const events = readEvents({ type: "factor.alert.fire" });
+    expect(events).toHaveLength(1);
+    expect(events[0]?.entity.id).toBe("alert_test_factor");
+  });
+
+  it("marks missing factors as failed during evaluation", () => {
+    writeFileSync(
+      ALERTS_PATH,
+      `${JSON.stringify(
+        {
+          alerts: [
+            {
+              factorId: "ghost_factor",
+              condition: "above",
+              threshold: 1,
+              createdAt: "2026-03-24T00:00:00Z",
+              active: true,
+            },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf-8",
+    );
+
+    const evaluations = evaluateAlerts();
+    expect(evaluations).toHaveLength(1);
+    expect(evaluations[0]?.status).toBe("failed");
+    expect(evaluations[0]?.reason).toContain("ghost_factor");
+  });
+
+  it("skips inactive alerts during evaluation", () => {
+    writeFileSync(
+      ALERTS_PATH,
+      `${JSON.stringify(
+        {
+          alerts: [
+            {
+              factorId: "alert_test_factor",
+              condition: "above",
+              threshold: 1,
+              createdAt: "2026-03-24T00:00:00Z",
+              active: false,
+            },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf-8",
+    );
+
+    expect(evaluateAlerts({ factorId: "alert_test_factor" })).toEqual([]);
+    expect(readEvents({ type: "factor.alert.fire" })).toEqual([]);
+  });
+
+  it("propagates audit failures when a firing alert cannot append its event", () => {
+    setAlert("alert_test_factor", "above", 1.0);
+    clearEventArtifacts();
+    process.env.TONQUANT_EVENT_LOG_FAIL_APPEND = "1";
+
+    expect(() => evaluateAlerts({ factorId: "alert_test_factor" })).toThrow(
+      "Injected event log append failure.",
+    );
   });
 });
