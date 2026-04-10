@@ -34,10 +34,20 @@ import { z } from "zod";
 
 const DEFAULT_SESSION_TTL_MS = 10 * 60 * 1000;
 
-const ReviewDecisionSchema = z.object({
-  decision: z.enum(["approve", "reject"]),
-  rejectionReason: z.string().min(1).optional(),
-});
+const ReviewDecisionSchema = z
+  .object({
+    decision: z.enum(["approve", "reject"]),
+    rejectionReason: z.string().min(1).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.decision === "reject" && !value.rejectionReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["rejectionReason"],
+        message: "Rejection reason is required when rejecting a publication.",
+      });
+    }
+  });
 
 const SessionCompletionSchema = z.object({
   sessionId: z.string().min(1),

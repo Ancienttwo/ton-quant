@@ -565,6 +565,54 @@ describe("platform api server", () => {
     app.close();
   });
 
+  test("rejecting a publication requires a rejection reason", async () => {
+    resetEventLogPath();
+    const app = createPlatformApiServer({
+      dbPath: ":memory:",
+      publicBaseUrl: "http://platform.test",
+      signerOrigin: "https://publish.tonquant.test",
+      sessionTtlMs: 60_000,
+      internalToken: INTERNAL_TOKEN,
+    });
+    const keyPair = keyPairFromSeed(Buffer.alloc(32, 41));
+    const wallet = WalletContractV5R1.create({
+      workchain: 0,
+      publicKey: keyPair.publicKey,
+    });
+    const manifest = buildPublishManifest({
+      ...factorEntry,
+      public: {
+        ...factorEntry.public,
+        id: "ton_signal_delta",
+      },
+    });
+
+    const publication = await submitPublication({
+      app,
+      manifest,
+      walletAddress: wallet.address.toRawString(),
+      publicSeedByte: 41,
+    });
+
+    const rejectResponse = await app.fetch(
+      new Request(
+        `http://platform.test/v1/internal/publications/${publication.publicationId}/review`,
+        {
+          method: "POST",
+          headers: internalHeaders(),
+          body: JSON.stringify({ decision: "reject" }),
+        },
+      ),
+    );
+
+    expect(rejectResponse.status).toBe(400);
+    const payload = (await rejectResponse.json()) as { code: string; error: string };
+    expect(payload.code).toBe("PLATFORM_VALIDATION_ERROR");
+    expect(payload.error).toContain("Rejection reason is required");
+
+    app.close();
+  });
+
   test("approving an update keeps newer payout routing and supersedes the prior publication", async () => {
     resetEventLogPath();
     const app = createPlatformApiServer({

@@ -150,6 +150,16 @@
 - [x] Re-run full `bun run lint`
 - [x] Re-run `HOME=/tmp/tonquant-home-platform bun run test`
 
+## Workstream 15: Automation Gateway Control Plane
+- [x] Add repo-local plan under `plans/plan-20260410-automation-gateway-control-plane.md`
+- [x] Add execution contract under `tasks/contracts/automation-gateway-control-plane.contract.md`
+- [x] Add shared automation schemas and store/service API in `packages/core`
+- [x] Add automation runtime and typed handler registry in `apps/cli/src/automation`
+- [x] Add CLI `automation schedule|list|status|pause|resume|remove|run-now` and `daemon`
+- [x] Persist immutable automation run artifacts under `~/.tonquant/quant/automation-runs/`
+- [x] Reuse existing autoresearch, alerts, and platform services instead of introducing an agent runtime
+- [x] Add regression coverage for scheduling, daemon execution, recovery, and alert evaluation
+
 ## Verification
 - [x] `bun typecheck` (core + cli: 0 errors; quant-backend: excluded)
 - [x] `bun lint` (cli + core: 0 errors; web: pre-existing a11y issues, out of scope)
@@ -184,3 +194,8 @@
 - [x] `bun run --cwd apps/web build` for TonConnect signer page
 - [x] Full `bun run lint`
 - [x] `HOME=/tmp/tonquant-home-packaging bun run test`
+- [x] `bun typecheck` after automation gateway control plane implementation
+- [x] `bun lint` after automation gateway control plane implementation
+- [x] `bun test --max-concurrency 1 --path-ignore-patterns '_ref/**'` after automation gateway control plane implementation
+- [x] `bun run apps/cli/src/index.ts automation --help`
+- [x] `bun run apps/cli/src/index.ts daemon --help`

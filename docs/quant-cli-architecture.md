@@ -24,6 +24,7 @@ This document is intentionally narrower than `docs/architecture.md`.
 In scope:
 
 - `apps/cli` quant command surface
+- `apps/cli/src/automation/*` control-plane runtime
 - `apps/cli/src/quant/*` runtime boundary
 - `apps/quant-backend` transport target
 - `packages/core` stateful services used by quant and marketplace flows
@@ -35,7 +36,6 @@ Out of scope:
 - web app architecture
 - strategy math details
 - remote registry API design
-- cron daemon design for future alert or autoresearch scheduling
 - production Python backend internals
 
 ## System Map
@@ -54,6 +54,9 @@ Out of scope:
 |  Surface C: Factor Marketplace Commands                                          |
 |  factor publish|discover|subscribe|top|compose|alert|report|skill-export         |
 |                                                                                  |
+|  Surface D: Automation Control Plane                                             |
+|  automation schedule|list|status|pause|resume|remove|run-now | daemon            |
+|                                                                                  |
 +-----------------------------------+----------------------------------------------+
                                     |
                                     v
@@ -70,13 +73,14 @@ Out of scope:
                            |                                   |
                            v                                   v
 +--------------------------------------------+   +--------------------------------+
-|   Quant Boundary (`apps/cli`)              |   |    Core Services (`packages`)  |
+|   Quant + Automation Boundary (`apps/cli`) |   |    Core Services (`packages`)  |
 +--------------------------------------------+   +--------------------------------+
 | types/          stable Zod contracts       |   | stonfi / tonapi / wallet       |
-| api/            typed entrypoints          |   | registry / alerts / reports    |
-| runner/         process + artifacts        |   | compose / skill-export         |
-| market/         multi-market instruments   |   | event-log / file-store         |
-| autoresearch/   durable track lifecycle    |   | config + crypto + units        |
+| automation/     scheduler runtime          |   | automation / registry / alerts |
+| api/            typed entrypoints          |   | reports / compose / skill-exp. |
+| runner/         process + artifacts        |   | event-log / file-store         |
+| market/         multi-market instruments   |   | config + crypto + units        |
+| autoresearch/   durable track lifecycle    |   |                                |
 | orchestrator.ts data->factor->backtest     |   |                                |
 +--------------------+-----------------------+   +---------------+----------------+
                      |                                           |
@@ -85,10 +89,11 @@ Out of scope:
 |      Quant Backend Transport Boundary      |   |         Local State Plane       |
 +--------------------------------------------+   +--------------------------------+
 | JSON-over-stdio                            |   | ~/.tonquant/config.json         |
-| request on stdin                           |   | ~/.tonquant/quant/...           |
-| typed result on stdout                     |   | ~/.tonquant/registry/...        |
-| logs on stderr                             |   | ~/.tonquant/events.jsonl        |
-+--------------------+-----------------------+   | ~/.tonquant/subscriptions.json  |
+| request on stdin                           |   | ~/.tonquant/automation/...      |
+| typed result on stdout                     |   | ~/.tonquant/quant/...           |
+| logs on stderr                             |   | ~/.tonquant/registry/...        |
++--------------------+-----------------------+   | ~/.tonquant/events.jsonl        |
+                     |                           | ~/.tonquant/subscriptions.json  |
                      |                           +--------------------------------+
                      v
 +----------------------------------------------------------------------------------+
@@ -108,6 +113,7 @@ ton/
 │   │   └── src/
 │   │       ├── index.ts                 # Commander entrypoint
 │   │       ├── cli/                     # Command definitions
+│   │       ├── automation/              # Control-plane runtime + handlers
 │   │       ├── quant/
 │   │       │   ├── api/                 # Typed quant APIs
 │   │       │   ├── runner/              # Backend resolution, spawn, artifacts
@@ -126,8 +132,8 @@ ton/
 ├── packages/
 │   └── core/
 │       └── src/
-│           ├── services/                # registry, alerts, reports, event-log...
-│           ├── types/                   # config, API, registry, event-log...
+│           ├── services/                # automation, registry, alerts, reports...
+│           ├── types/                   # config, automation, registry, event-log...
 │           └── utils/                   # file-store, crypto, units
 └── docs/
     ├── architecture.md                  # high-level system overview
@@ -136,11 +142,12 @@ ton/
 
 ## Command Surfaces
 
-TonQuant intentionally has three execution surfaces.
+TonQuant intentionally has four execution surfaces.
 
 The first is TON-specific.
 The second is designed to stay market-agnostic.
 The third is where TON-first factor trading and distribution live today.
+The fourth is the automation control plane for scheduled and manual background jobs.
 
 ### 1. Support commands
 
@@ -211,6 +218,28 @@ This path is optimized for:
 - auditable changes
 - recoverable mutations
 - future remote sync without changing the CLI contract first
+
+### 4. Automation control-plane commands
+
+These flows schedule and execute background jobs through a dedicated automation state plane.
+
+```text
+Operator / Agent / Daemon
+  -> Commander automation command or daemon loop
+  -> automation runtime handler registry
+  -> packages/core automation service
+  -> job spec/state/history + lease claim/recovery
+  -> typed domain handler
+  -> immutable automation run artifacts
+  -> audit event append
+```
+
+This path is optimized for:
+
+- durable background work
+- schedule and lease ownership
+- recovery after interruption
+- shared execution semantics between `run-now` and daemon-triggered runs
 
 ## Quant Boundary
 
@@ -571,8 +600,13 @@ The CLI contract can stay stable while the storage backend evolves to:
 
 ### Scheduling seam
 
-Alerts and autoresearch currently have durable state but not a standalone scheduler.
-A future cron or daemon layer should sit beside the current state plane, not inside command handlers.
+Alerts and autoresearch now execute through a standalone automation control plane.
+Scheduling sits beside the current domain state, not inside command handlers:
+
+- job intent/state/history live under `~/.tonquant/automation/`
+- immutable run artifacts live under `~/.tonquant/quant/automation-runs/`
+- domain truth stays in autoresearch track state, alert definitions, and platform state
+- agents are callers, not the scheduler itself
 
 ## Explicit Non-Goals
 
@@ -596,7 +630,7 @@ This architecture is not trying to:
 | State/run boundary blur        | rollback becomes unsafe              | split ownership  |
 | Formatter drift                | agents consume unstable text         | --json envelope  |
 | Marketplace mutation failures  | local registry corruption            | event-log guard  |
-| Scheduler added in wrong place | command handlers gain hidden state   | defer daemon     |
+| Scheduler/control-plane drift  | daemon path diverges from run-now    | shared runtime   |
 +--------------------------------+--------------------------------------+------------------+
 ```
 
