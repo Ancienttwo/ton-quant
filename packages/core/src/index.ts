@@ -7,10 +7,34 @@ export { SEED_FACTORS } from "./data/seed-factors.js";
 export { ServiceError } from "./errors.js";
 // Factor Alert Service
 export {
+  evaluateAlerts,
   listAlerts,
   removeAlert,
   setAlert,
 } from "./services/alerts.js";
+export {
+  AutomationDaemonLockError,
+  AutomationError,
+  AutomationHandlerRegistry,
+  AutomationJobCorruptedError,
+  AutomationJobNotFoundError,
+  AutomationJobStateError,
+  acquireAutomationDaemonLock,
+  claimAutomationJob,
+  claimNextDueAutomationJob,
+  completeAutomationJob,
+  computeNextRunAt,
+  failAutomationJob,
+  getAutomationDaemonLockPath,
+  getAutomationJob,
+  listAutomationJobs,
+  pauseAutomationJob,
+  reconcileAutomationJob,
+  recoverExpiredAutomationJobs,
+  removeAutomationJob,
+  resumeAutomationJob,
+  scheduleAutomationJob,
+} from "./services/automation.js";
 export {
   buildPriceIndex,
   cachedFindAssetBySymbol,
@@ -121,6 +145,7 @@ export {
   type TransactionEvent,
   TransactionEventSchema,
 } from "./types/api.js";
+export * from "./types/automation.js";
 // Types — Config
 export {
   CONFIG_DIR,

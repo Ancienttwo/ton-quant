@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { SEED_FACTORS } from "../../src/data/seed-factors.js";
@@ -7,11 +7,22 @@ import { seedRegistry } from "../../src/services/seed.js";
 
 const REGISTRY_ROOT = join(process.env.HOME ?? "/tmp", ".tonquant", "registry");
 const INDEX_PATH = join(REGISTRY_ROOT, "factors.json");
+const EVENT_LOG_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "test-seed-events.jsonl");
+const EVENT_LOG_LOCK_PATH = `${EVENT_LOG_PATH}.lock`;
 
 describe("seed service", () => {
   beforeEach(() => {
     // Clean registry index to start fresh
     if (existsSync(INDEX_PATH)) rmSync(INDEX_PATH);
+    if (existsSync(EVENT_LOG_PATH)) rmSync(EVENT_LOG_PATH);
+    if (existsSync(EVENT_LOG_LOCK_PATH)) rmSync(EVENT_LOG_LOCK_PATH);
+    process.env.TONQUANT_EVENT_LOG_PATH = EVENT_LOG_PATH;
+  });
+
+  afterEach(() => {
+    if (existsSync(EVENT_LOG_PATH)) rmSync(EVENT_LOG_PATH);
+    if (existsSync(EVENT_LOG_LOCK_PATH)) rmSync(EVENT_LOG_LOCK_PATH);
+    delete process.env.TONQUANT_EVENT_LOG_PATH;
   });
 
   it("publishes all seed factors to empty registry", () => {

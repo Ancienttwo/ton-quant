@@ -1,15 +1,30 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { seedRegistry } from "../../src/services/seed.js";
 import { exportTopFactorsAsSkills, formatSkillMarkdown } from "../../src/services/skill-export.js";
 
 const INDEX_PATH = join(process.env.HOME ?? "/tmp", ".tonquant", "registry", "factors.json");
+const EVENT_LOG_PATH = join(
+  process.env.HOME ?? "/tmp",
+  ".tonquant",
+  "test-skill-export-events.jsonl",
+);
+const EVENT_LOG_LOCK_PATH = `${EVENT_LOG_PATH}.lock`;
 
 describe("skill export service", () => {
   beforeEach(() => {
     if (existsSync(INDEX_PATH)) rmSync(INDEX_PATH);
+    if (existsSync(EVENT_LOG_PATH)) rmSync(EVENT_LOG_PATH);
+    if (existsSync(EVENT_LOG_LOCK_PATH)) rmSync(EVENT_LOG_LOCK_PATH);
+    process.env.TONQUANT_EVENT_LOG_PATH = EVENT_LOG_PATH;
     seedRegistry();
+  });
+
+  afterEach(() => {
+    if (existsSync(EVENT_LOG_PATH)) rmSync(EVENT_LOG_PATH);
+    if (existsSync(EVENT_LOG_LOCK_PATH)) rmSync(EVENT_LOG_LOCK_PATH);
+    delete process.env.TONQUANT_EVENT_LOG_PATH;
   });
 
   it("exports top factors as skill definitions", () => {

@@ -6,11 +6,16 @@ import type { ServiceError } from "@tonquant/core";
 import { getAutoresearchTrack, initAutoresearchTrack } from "../../../src/quant/api/autoresearch";
 
 const tempDirs: string[] = [];
+const EVENT_LOG_PATH = join(tmpdir(), "tonquant-autoresearch-api-events.jsonl");
+const EVENT_LOG_LOCK_PATH = `${EVENT_LOG_PATH}.lock`;
 
 afterEach(() => {
   for (const dir of tempDirs.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
   }
+  if (existsSync(EVENT_LOG_PATH)) rmSync(EVENT_LOG_PATH);
+  if (existsSync(EVENT_LOG_LOCK_PATH)) rmSync(EVENT_LOG_LOCK_PATH);
+  delete process.env.TONQUANT_EVENT_LOG_PATH;
 });
 
 function createTempDir(prefix: string): string {
@@ -21,6 +26,7 @@ function createTempDir(prefix: string): string {
 
 describe("autoresearch api", () => {
   test("init writes invocation artifacts under autoresearch-runs", async () => {
+    process.env.TONQUANT_EVENT_LOG_PATH = EVENT_LOG_PATH;
     const outputDir = createTempDir("tonquant-autoresearch-api-");
 
     const result = await initAutoresearchTrack({
@@ -57,6 +63,7 @@ describe("autoresearch api", () => {
   });
 
   test("status calls also use autoresearch run artifacts", async () => {
+    process.env.TONQUANT_EVENT_LOG_PATH = EVENT_LOG_PATH;
     const outputDir = createTempDir("tonquant-autoresearch-status-");
     const track = await initAutoresearchTrack({
       title: "Status Track",
@@ -78,6 +85,7 @@ describe("autoresearch api", () => {
   });
 
   test("init rejects unsupported provider combinations through the shared market contract", async () => {
+    process.env.TONQUANT_EVENT_LOG_PATH = EVENT_LOG_PATH;
     const outputDir = createTempDir("tonquant-autoresearch-provider-");
 
     await expect(
