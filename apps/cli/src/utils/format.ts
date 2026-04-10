@@ -3,6 +3,10 @@ import Table from "cli-table3";
 import type {
   BalanceData,
   HistoryData,
+  MarketCandlesData,
+  MarketCompareData,
+  MarketQuoteData,
+  MarketSearchData,
   PoolData,
   PriceData,
   ResearchData,
@@ -50,6 +54,98 @@ export function formatPrice(data: PriceData): string {
     chalk.dim(`  Address:   ${data.address}`),
   ];
   return lines.filter(Boolean).join("\n");
+}
+
+function formatSignedNumber(raw: string): string {
+  const n = Number.parseFloat(raw);
+  if (Number.isNaN(n)) return raw;
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${n.toFixed(3)}`;
+}
+
+export function formatMarketQuote(data: MarketQuoteData): string {
+  const lines = [
+    header(`${data.symbol} (${data.name})`),
+    divider(),
+    `  Price:     ${chalk.cyan(`${data.price} ${data.trust.quote_currency}`)}`,
+    `  24h:       ${greenRed(data.change_24h_pct)}`,
+    `  Volume:    ${data.volume_24h} ${data.trust.quote_currency}`,
+    data.high_24h ? `  High:      ${data.high_24h} ${data.trust.quote_currency}` : null,
+    data.low_24h ? `  Low:       ${data.low_24h} ${data.trust.quote_currency}` : null,
+    divider(),
+    chalk.dim(`  Provider:  ${data.trust.provider}`),
+    chalk.dim(`  Venue:     ${data.trust.venue}`),
+    chalk.dim(`  Symbol:    ${data.trust.provider_symbol}`),
+    chalk.dim(`  Observed:  ${data.trust.observed_at}`),
+    chalk.dim(`  Age:       ${data.trust.age_seconds}s`),
+  ];
+  return lines.filter(Boolean).join("\n");
+}
+
+export function formatMarketSearch(data: MarketSearchData): string {
+  const table = new Table({
+    head: ["Symbol", "Name", "Provider", "Type", "Provider Symbol"],
+    style: { head: ["cyan"] },
+  });
+  for (const candidate of data.candidates) {
+    table.push([
+      chalk.bold(candidate.symbol),
+      candidate.name,
+      candidate.provider,
+      candidate.market_type,
+      candidate.provider_symbol,
+    ]);
+  }
+  return `${header(`Market Search: ${data.query}`)}\n${divider()}\n${table.toString()}`;
+}
+
+export function formatMarketCompare(data: MarketCompareData): string {
+  const table = new Table({
+    head: ["Provider", "Price", "24h", "Volume", "Provider Symbol"],
+    style: { head: ["cyan"] },
+  });
+  for (const quote of data.quotes) {
+    table.push([
+      quote.trust.provider,
+      `${quote.price} ${quote.trust.quote_currency}`,
+      greenRed(quote.change_24h_pct),
+      `${quote.volume_24h} ${quote.trust.quote_currency}`,
+      quote.trust.provider_symbol,
+    ]);
+  }
+  return [
+    header(`Market Compare: ${data.symbol}`),
+    divider(),
+    table.toString(),
+    divider(),
+    `  Spread:    ${formatSignedNumber(data.spread_abs)} (${data.spread_pct})`,
+  ].join("\n");
+}
+
+export function formatMarketCandles(data: MarketCandlesData): string {
+  const table = new Table({
+    head: ["Open Time", "Open", "High", "Low", "Close", "Volume"],
+    style: { head: ["cyan"] },
+  });
+  for (const candle of data.candles.slice(-10)) {
+    table.push([
+      candle.open_time,
+      candle.open,
+      candle.high,
+      candle.low,
+      candle.close,
+      candle.volume,
+    ]);
+  }
+  return [
+    header(`Market Candles: ${data.symbol} (${data.interval})`),
+    divider(),
+    chalk.dim(
+      `  ${data.trust.provider} ${data.trust.provider_symbol} • observed ${data.trust.observed_at} • age ${data.trust.age_seconds}s`,
+    ),
+    divider(),
+    table.toString(),
+  ].join("\n");
 }
 
 /**

@@ -24,6 +24,20 @@ const assets: Asset[] = [
     decimals: 9,
     dex_usd_price: "3.70",
   },
+  {
+    contract_address: "EQ_btc_1",
+    symbol: "BTC",
+    display_name: "Fake BTC One",
+    decimals: 9,
+    dex_usd_price: "1.00",
+  },
+  {
+    contract_address: "EQ_btc_2",
+    symbol: "BTC",
+    display_name: "Fake BTC Two",
+    decimals: 9,
+    dex_usd_price: "2.00",
+  },
 ];
 
 const pools: Pool[] = [
@@ -82,6 +96,12 @@ describe("fetchPriceData", () => {
   test("is case-insensitive", async () => {
     const data = await fetchPriceData("not");
     expect(data.symbol).toBe("NOT");
+  });
+
+  test("rejects ambiguous TON symbols instead of picking the first match", async () => {
+    await expect(fetchPriceData("BTC")).rejects.toMatchObject({
+      code: "TON_SYMBOL_AMBIGUOUS",
+    });
   });
 });
 

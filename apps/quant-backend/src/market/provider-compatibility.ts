@@ -20,5 +20,11 @@ export function providerCompatibilityError(input: {
   ) {
     return `Unsupported provider '${input.provider}' for market '${input.assetClass}/${input.marketRegion}'.`;
   }
+  if (
+    (input.provider === "binance" || input.provider === "hyperliquid") &&
+    !(input.assetClass === "crypto" && input.marketRegion === "global")
+  ) {
+    return `Unsupported provider '${input.provider}' for market '${input.assetClass}/${input.marketRegion}'.`;
+  }
   return null;
 }

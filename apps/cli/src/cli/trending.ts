@@ -6,7 +6,7 @@ import { handleCommand } from "../utils/output.js";
 export function registerTrendingCommand(program: Command): void {
   program
     .command("trending")
-    .description("Show trending tokens ranked by liquidity")
+    .description("Show trending TON tokens ranked by STON.fi liquidity")
     .option("-n, --limit <number>", "Number of tokens to show", "10")
     .action(async (options: { limit: string }) => {
       const json = program.opts().json ?? false;

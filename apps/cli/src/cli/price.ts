@@ -6,7 +6,7 @@ import { handleCommand } from "../utils/output.js";
 export function registerPriceCommand(program: Command): void {
   program
     .command("price <symbol>")
-    .description("Query token price, 24h change, and volume")
+    .description("Query TON jetton price by TON symbol (legacy TON-scoped path)")
     .action(async (symbol: string) => {
       const json = program.opts().json ?? false;
       await handleCommand({ json }, () => fetchPriceData(symbol), formatPrice);

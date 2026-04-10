@@ -9,13 +9,31 @@ export const DateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "Expect
 export const AssetClassSchema = z.enum(["crypto", "equity", "bond"]);
 export type AssetClass = z.infer<typeof AssetClassSchema>;
 
-export const MarketRegionSchema = z.enum(["ton", "us", "hk", "cn"]);
+export const MarketRegionSchema = z.enum(["ton", "global", "us", "hk", "cn"]);
 export type MarketRegion = z.infer<typeof MarketRegionSchema>;
 
-export const VenueCodeSchema = z.enum(["stonfi", "nyse", "nasdaq", "hkex", "sse", "szse", "cibm"]);
+export const VenueCodeSchema = z.enum([
+  "stonfi",
+  "binance",
+  "hyperliquid",
+  "nyse",
+  "nasdaq",
+  "hkex",
+  "sse",
+  "szse",
+  "cibm",
+]);
 export type VenueCode = z.infer<typeof VenueCodeSchema>;
 
-export const ProviderCodeSchema = z.enum(["synthetic", "stonfi", "tonapi", "yfinance", "openbb"]);
+export const ProviderCodeSchema = z.enum([
+  "synthetic",
+  "stonfi",
+  "tonapi",
+  "binance",
+  "hyperliquid",
+  "yfinance",
+  "openbb",
+]);
 export type ProviderCode = z.infer<typeof ProviderCodeSchema>;
 
 export const CalendarIdSchema = z.enum(["24-7", "XNYS", "XNAS", "XHKG", "XSHG", "XSHE", "CIBM"]);

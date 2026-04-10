@@ -7,6 +7,7 @@ import { registerDataCommand } from "./cli/data.js";
 import { registerFactorCommand } from "./cli/factor.js";
 import { registerHistoryCommand } from "./cli/history.js";
 import { registerInitCommand } from "./cli/init.js";
+import { registerMarketCommand } from "./cli/market.js";
 import { registerPoolsCommand } from "./cli/pools.js";
 import { registerPresetCommand } from "./cli/preset.js";
 import { registerPriceCommand } from "./cli/price.js";
@@ -26,6 +27,7 @@ program
 
 // P0 commands
 registerPriceCommand(program);
+registerMarketCommand(program);
 registerPoolsCommand(program);
 registerTrendingCommand(program);
 registerInitCommand(program);

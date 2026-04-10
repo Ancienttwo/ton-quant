@@ -4,7 +4,10 @@
  */
 
 import { join } from "node:path";
+import { fetchMarketCandlesData } from "@tonquant/core";
 import {
+  computeRequestedBars,
+  createDatasetDocument,
   datasetFileName,
   findLatestDataset,
   generateDatasetDocument,
@@ -40,6 +43,31 @@ async function resolveDatasetForRequest(input: {
   startDate?: string;
   endDate?: string;
 }) {
+  if (input.instrument.provider === "binance" || input.instrument.provider === "hyperliquid") {
+    const limit = computeRequestedBars(input.startDate, input.endDate, input.interval);
+    const candles = await fetchMarketCandlesData(input.instrument.displaySymbol, {
+      provider: input.instrument.provider,
+      interval: input.interval,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      limit,
+    });
+    return createDatasetDocument({
+      instrument: input.instrument,
+      interval: input.interval,
+      bars: candles.candles.map((candle) => ({
+        date:
+          input.interval === "1d"
+            ? candle.open_time.slice(0, 10)
+            : candle.open_time.slice(0, 16).replace("T", " "),
+        open: Number(candle.open),
+        high: Number(candle.high),
+        low: Number(candle.low),
+        close: Number(candle.close),
+        volume: Math.round(Number(candle.volume)),
+      })),
+    });
+  }
   if (input.instrument.provider === "yfinance") {
     return yfinanceMarket.fetchYFinanceDatasetDocument(input);
   }

@@ -2,9 +2,25 @@ import { QuantBackendError } from "../errors";
 import { providerCompatibilityError } from "./provider-compatibility";
 
 export type AssetClass = "crypto" | "equity" | "bond";
-export type MarketRegion = "ton" | "us" | "hk" | "cn";
-export type VenueCode = "stonfi" | "nyse" | "nasdaq" | "hkex" | "sse" | "szse" | "cibm";
-export type ProviderCode = "synthetic" | "stonfi" | "tonapi" | "yfinance" | "openbb";
+export type MarketRegion = "ton" | "global" | "us" | "hk" | "cn";
+export type VenueCode =
+  | "stonfi"
+  | "binance"
+  | "hyperliquid"
+  | "nyse"
+  | "nasdaq"
+  | "hkex"
+  | "sse"
+  | "szse"
+  | "cibm";
+export type ProviderCode =
+  | "synthetic"
+  | "stonfi"
+  | "tonapi"
+  | "binance"
+  | "hyperliquid"
+  | "yfinance"
+  | "openbb";
 export type CalendarId = "24-7" | "XNYS" | "XNAS" | "XHKG" | "XSHG" | "XSHE" | "CIBM";
 
 export interface InstrumentRefLike {
@@ -52,6 +68,15 @@ function marketDefaultsFor(
       defaultProvider: "stonfi",
     };
   }
+  if (assetClass === "crypto" && marketRegion === "global") {
+    return {
+      quoteCurrency: "USDT",
+      timezone: "UTC",
+      calendarId: "24-7",
+      defaultVenue: "binance",
+      defaultProvider: "binance",
+    };
+  }
   if (assetClass === "equity" && marketRegion === "us") {
     return {
       quoteCurrency: "USD",
@@ -97,6 +122,9 @@ function assertVenueAllowed(
   venue: VenueCode,
 ): void {
   if (assetClass === "crypto" && !(marketRegion === "ton" && venue === "stonfi")) {
+    if (marketRegion === "global" && (venue === "binance" || venue === "hyperliquid")) {
+      return;
+    }
     throw new QuantBackendError(
       `Unsupported crypto venue '${venue}' for market '${marketRegion}'.`,
       "QUANT_MARKET_COMBINATION_UNSUPPORTED",
@@ -135,6 +163,10 @@ function normalizeSymbolForProvider(
   if (assetClass === "crypto" && marketRegion === "ton") {
     return trimmed;
   }
+  if (assetClass === "crypto" && marketRegion === "global") {
+    const base = trimmed.replace(/\/?(USDT|USD)$/u, "");
+    return provider === "binance" ? `${base}USDT` : base;
+  }
   if (assetClass === "equity" && marketRegion === "hk") {
     return /^\d+$/.test(trimmed) ? `${trimmed.padStart(4, "0")}.HK` : trimmed;
   }
@@ -142,6 +174,48 @@ function normalizeSymbolForProvider(
     return venue === "sse" ? `${trimmed}.SS` : `${trimmed}.SZ`;
   }
   return trimmed;
+}
+
+function normalizeDisplaySymbol(
+  symbol: string,
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+): string {
+  const trimmed = symbol.trim().toUpperCase();
+  if (assetClass === "crypto" && marketRegion === "global") {
+    return trimmed.replace(/\/?(USDT|USD)$/u, "");
+  }
+  return trimmed;
+}
+
+function defaultVenueFor(
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+  provider: ProviderCode,
+): VenueCode {
+  if (assetClass === "crypto" && marketRegion === "global") {
+    return provider === "hyperliquid" ? "hyperliquid" : "binance";
+  }
+  const defaults = marketDefaultsFor(assetClass, marketRegion);
+  if (!defaults) {
+    throw new QuantBackendError(
+      `Unsupported market combination: ${assetClass}/${marketRegion}`,
+      "QUANT_MARKET_COMBINATION_UNSUPPORTED",
+    );
+  }
+  return defaults.defaultVenue;
+}
+
+function quoteCurrencyFor(
+  defaults: MarketDefaults,
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+  provider: ProviderCode,
+): string {
+  if (assetClass === "crypto" && marketRegion === "global") {
+    return provider === "binance" ? "USDT" : "USD";
+  }
+  return defaults.quoteCurrency;
 }
 
 export function instrumentIdFor(input: {
@@ -174,11 +248,11 @@ export function resolveInstrument(input: {
       "QUANT_MARKET_COMBINATION_UNSUPPORTED",
     );
   }
-  const venue = input.venue ?? defaults.defaultVenue;
   const provider = input.provider ?? defaults.defaultProvider;
+  const venue = input.venue ?? defaultVenueFor(input.assetClass, input.marketRegion, provider);
   assertVenueAllowed(input.assetClass, input.marketRegion, venue);
   assertProviderAllowed(input.assetClass, input.marketRegion, provider);
-  const displaySymbol = input.symbol.trim().toUpperCase();
+  const displaySymbol = normalizeDisplaySymbol(input.symbol, input.assetClass, input.marketRegion);
 
   return {
     id: instrumentIdFor({
@@ -209,7 +283,7 @@ export function resolveInstrument(input: {
         provider,
       ),
     },
-    quoteCurrency: defaults.quoteCurrency,
+    quoteCurrency: quoteCurrencyFor(defaults, input.assetClass, input.marketRegion, provider),
     timezone: defaults.timezone,
     calendarId: defaults.calendarId,
   };

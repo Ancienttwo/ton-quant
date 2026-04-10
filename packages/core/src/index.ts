@@ -14,6 +14,7 @@ export {
 export {
   buildPriceIndex,
   cachedFindAssetBySymbol,
+  cachedFindAssetsBySymbol,
   cachedGetAssets,
   cachedGetPools,
   clearCache,
@@ -42,6 +43,13 @@ export {
   queryEvents,
   readEvents,
 } from "./services/event-log.js";
+export {
+  clearMarketCache,
+  fetchMarketCandlesData,
+  fetchMarketCompareData,
+  fetchMarketQuoteData,
+  fetchMarketSearchData,
+} from "./services/market.js";
 export {
   fetchBalanceData,
   fetchHistoryData,
@@ -190,6 +198,28 @@ export {
   FactorSubscriptionSchema,
   ReportsFileSchema,
 } from "./types/factor-registry.js";
+export {
+  type MarketCandle,
+  MarketCandleSchema,
+  type MarketCandlesData,
+  MarketCandlesDataSchema,
+  type MarketCompareData,
+  MarketCompareDataSchema,
+  type MarketInstrumentCandidate,
+  MarketInstrumentCandidateSchema,
+  type MarketProvider,
+  MarketProviderSchema,
+  type MarketQuoteData,
+  MarketQuoteDataSchema,
+  type MarketSearchData,
+  MarketSearchDataSchema,
+  type MarketTrustMetadata,
+  MarketTrustMetadataSchema,
+  type MarketType,
+  MarketTypeSchema,
+  type MarketVenue,
+  MarketVenueSchema,
+} from "./types/market.js";
 export { decrypt, encrypt, loadOrCreateKey } from "./utils/crypto.js";
 // Utils
 export { calcUsdValue, fromRawUnits, toRawUnits } from "./utils/units.js";

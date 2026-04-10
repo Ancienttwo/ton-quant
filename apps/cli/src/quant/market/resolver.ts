@@ -26,6 +26,13 @@ const CRYPTO_MARKET_DEFAULTS: Record<MarketRegion, MarketDefaults | undefined> =
     defaultVenue: "stonfi",
     defaultProvider: "stonfi",
   },
+  global: {
+    quoteCurrency: "USDT",
+    timezone: "UTC",
+    calendarId: "24-7",
+    defaultVenue: "binance",
+    defaultProvider: "binance",
+  },
   us: undefined,
   hk: undefined,
   cn: undefined,
@@ -33,6 +40,7 @@ const CRYPTO_MARKET_DEFAULTS: Record<MarketRegion, MarketDefaults | undefined> =
 
 const EQUITY_MARKET_DEFAULTS: Record<MarketRegion, MarketDefaults | undefined> = {
   ton: undefined,
+  global: undefined,
   us: {
     quoteCurrency: "USD",
     timezone: "America/New_York",
@@ -58,6 +66,7 @@ const EQUITY_MARKET_DEFAULTS: Record<MarketRegion, MarketDefaults | undefined> =
 
 const BOND_MARKET_DEFAULTS: Record<MarketRegion, MarketDefaults | undefined> = {
   ton: undefined,
+  global: undefined,
   us: undefined,
   hk: undefined,
   cn: {
@@ -85,7 +94,14 @@ function marketDefaultsFor(assetClass: AssetClass, marketRegion: MarketRegion): 
   return defaults;
 }
 
-function defaultVenueFor(assetClass: AssetClass, marketRegion: MarketRegion): VenueCode {
+function defaultVenueFor(
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+  provider?: ProviderCode,
+): VenueCode {
+  if (assetClass === "crypto" && marketRegion === "global") {
+    return provider === "hyperliquid" ? "hyperliquid" : "binance";
+  }
   return marketDefaultsFor(assetClass, marketRegion).defaultVenue;
 }
 
@@ -113,6 +129,9 @@ function assertVenueAllowed(
   venue: VenueCode,
 ): void {
   if (assetClass === "crypto" && !(marketRegion === "ton" && venue === "stonfi")) {
+    if (marketRegion === "global" && (venue === "binance" || venue === "hyperliquid")) {
+      return;
+    }
     throw new ServiceError(
       `Unsupported crypto venue '${venue}' for market '${marketRegion}'.`,
       "QUANT_MARKET_COMBINATION_UNSUPPORTED",
@@ -151,6 +170,10 @@ function normalizeSymbolForProvider(
   if (assetClass === "crypto" && marketRegion === "ton") {
     return trimmed;
   }
+  if (assetClass === "crypto" && marketRegion === "global") {
+    const base = trimmed.replace(/\/?(USDT|USD)$/u, "");
+    return provider === "binance" ? `${base}USDT` : base;
+  }
   if (assetClass === "equity" && marketRegion === "us") {
     return trimmed;
   }
@@ -162,6 +185,30 @@ function normalizeSymbolForProvider(
     return venue === "sse" ? `${trimmed}.SS` : `${trimmed}.SZ`;
   }
   return trimmed;
+}
+
+function normalizeDisplaySymbol(
+  symbol: string,
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+): string {
+  const trimmed = symbol.trim().toUpperCase();
+  if (assetClass === "crypto" && marketRegion === "global") {
+    return trimmed.replace(/\/?(USDT|USD)$/u, "");
+  }
+  return trimmed;
+}
+
+function quoteCurrencyFor(
+  defaults: MarketDefaults,
+  assetClass: AssetClass,
+  marketRegion: MarketRegion,
+  provider: ProviderCode,
+): string {
+  if (assetClass === "crypto" && marketRegion === "global") {
+    return provider === "binance" ? "USDT" : "USD";
+  }
+  return defaults.quoteCurrency;
 }
 
 function instrumentIdFor(input: {
@@ -190,11 +237,11 @@ export interface ResolveInstrumentInput {
 
 export function resolveInstrument(input: ResolveInstrumentInput): InstrumentRef {
   const defaults = marketDefaultsFor(input.assetClass, input.marketRegion);
-  const venue = input.venue ?? defaultVenueFor(input.assetClass, input.marketRegion);
-  assertVenueAllowed(input.assetClass, input.marketRegion, venue);
   const provider = input.provider ?? defaults.defaultProvider;
+  const venue = input.venue ?? defaultVenueFor(input.assetClass, input.marketRegion, provider);
+  assertVenueAllowed(input.assetClass, input.marketRegion, venue);
   assertProviderAllowed(input.assetClass, input.marketRegion, provider);
-  const displaySymbol = input.symbol.trim().toUpperCase();
+  const displaySymbol = normalizeDisplaySymbol(input.symbol, input.assetClass, input.marketRegion);
 
   return InstrumentRefSchema.parse({
     id: instrumentIdFor({
@@ -225,7 +272,7 @@ export function resolveInstrument(input: ResolveInstrumentInput): InstrumentRef 
         provider,
       ),
     },
-    quoteCurrency: defaults.quoteCurrency,
+    quoteCurrency: quoteCurrencyFor(defaults, input.assetClass, input.marketRegion, provider),
     timezone: defaults.timezone,
     calendarId: defaults.calendarId,
   });
